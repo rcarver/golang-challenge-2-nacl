@@ -16,7 +16,7 @@ func NewSecureReader(r io.Reader, priv, pub *[32]byte) io.Reader {
 
 // NewSecureWriter instantiates a new SecureWriter
 func NewSecureWriter(w io.Writer, priv, pub *[32]byte) io.Writer {
-	return nil
+	return &SecureWriter{w, priv, pub}
 }
 
 // Dial generates a private/public key pair,
