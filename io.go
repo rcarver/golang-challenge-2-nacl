@@ -8,6 +8,53 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
+// Nonce is the unique input for each new encryption. This type implements
+// io.Reader and io.Writer to easily move the byte value around.
+type Nonce [nonceSize]byte
+
+const nonceSize = 24
+
+// newNonce returns a new Nonce with a random value.
+func newNonce() *Nonce {
+	var nonce Nonce
+	buf := make([]byte, nonceSize)
+	_, err := rand.Read(buf)
+	if err != nil {
+		return nil
+	}
+	for i, v := range buf {
+		nonce[i] = v
+	}
+	return &nonce
+}
+
+// Read puts the nonce value into the buffer.
+func (n *Nonce) Read(buf []byte) (int, error) {
+	c := copy(buf, n[:])
+	if c < nonceSize {
+		return c, errors.New("did not read the entire value")
+	}
+	return c, nil
+}
+
+// Write sets the nonce value by reading the buffer.
+func (n *Nonce) Write(buf []byte) (int, error) {
+	c := copy(n[:], buf)
+	if c < nonceSize {
+		return c, errors.New("did not write the entire value")
+	}
+	return c, nil
+}
+
+// Array returns a byte array of the nonce value.
+func (n *Nonce) Array() *[nonceSize]byte {
+	var b [nonceSize]byte
+	for i, x := range n {
+		b[i] = x
+	}
+	return &b
+}
+
 type SecureReader struct {
 	r    io.Reader
 	priv *[32]byte
@@ -21,17 +68,24 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 		return c, err
 	}
 
-	// The nonce is the first 24 bytes.
-	var nonce [24]byte
-	copy(nonce[:], buf)
+	//fmt.Printf("Read: buf\n%s\n", hex.Dump(buf))
 
-	// The msg is the rest of the buffer that was read.
-	var msg = buf[24:c]
+	// Initialize the Nonce by reading from the buffer
+	var nonce Nonce
+	if _, err := nonce.Write(buf); err != nil {
+		return 0, err
+	}
+
+	// The message is the rest of what was read.
+	var msg = buf[len(nonce):c]
+
+	//fmt.Printf("Read: nonce\n%s\n", hex.Dump(nonce.Array()[:]))
+	//fmt.Printf("Read: msg\n%s\n", hex.Dump(msg))
 
 	// Decrypt the message.
-	res, ok := box.Open(nil, msg, &nonce, r.pub, r.priv)
+	res, ok := box.Open(nil, msg, nonce.Array(), r.pub, r.priv)
 	if !ok {
-		return 0, errors.New("box.Open failed")
+		return 0, errors.New("decryption failed")
 	}
 
 	// Copy the result into the read buffer.
@@ -47,31 +101,24 @@ type SecureWriter struct {
 
 func (w *SecureWriter) Write(buf []byte) (int, error) {
 	// Create a nonce.
-	nonce, err := newNonce()
-	if err != nil {
-		return 0, err
+	nonce := newNonce()
+	if nonce == nil {
+		return 0, errors.New("failed to create nonce")
 	}
 
 	// Create an output buffer and initialize it with the nonce.
-	out := make([]byte, 24)
-	copy(out, nonce[:])
+	out := make([]byte, len(nonce))
+	if _, err := nonce.Read(out); err != nil {
+		return 0, err
+	}
+
+	//fmt.Printf("Write: nonce\n%s\n", hex.Dump(nonce.Array()[:]))
 
 	// Encrypt the message to the output buffer.
-	sealed := box.Seal(out, buf, &nonce, w.pub, w.priv)
+	sealed := box.Seal(out, buf, nonce.Array(), w.pub, w.priv)
+
+	//fmt.Printf("Write: sealed\n%s\n", hex.Dump(sealed))
 
 	// Write the encrypted message to the writer.
 	return w.w.Write(sealed)
-}
-
-func newNonce() ([24]byte, error) {
-	var nonce [24]byte
-	buf := make([]byte, 24)
-	_, err := rand.Read(buf)
-	if err != nil {
-		return nonce, err
-	}
-	for i, v := range buf {
-		nonce[i] = v
-	}
-	return nonce, nil
 }
