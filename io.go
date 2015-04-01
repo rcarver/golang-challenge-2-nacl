@@ -2,7 +2,9 @@ package main
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 
 	"golang.org/x/crypto/nacl/box"
@@ -32,7 +34,7 @@ func newNonce() *Nonce {
 func (n *Nonce) Read(buf []byte) (int, error) {
 	c := copy(buf, n[:])
 	if c < nonceSize {
-		return c, errors.New("did not read the entire value")
+		return c, errors.New(fmt.Sprintf("did not read the entire value (read %d)", c))
 	}
 	return c, nil
 }
@@ -41,7 +43,7 @@ func (n *Nonce) Read(buf []byte) (int, error) {
 func (n *Nonce) Write(buf []byte) (int, error) {
 	c := copy(n[:], buf)
 	if c < nonceSize {
-		return c, errors.New("did not write the entire value")
+		return c, errors.New(fmt.Sprintf("did not write the entire value (wrote %d)", c))
 	}
 	return c, nil
 }
@@ -55,6 +57,10 @@ func (n *Nonce) Array() *[nonceSize]byte {
 	return &b
 }
 
+// maxMessageSize is the greatest number of bytes that can be transmitted
+// as a single message using SecureReader and SecureWriter.
+var maxMessageSize = 3072
+
 type SecureReader struct {
 	r    io.Reader
 	priv *[32]byte
@@ -62,31 +68,35 @@ type SecureReader struct {
 }
 
 func (r *SecureReader) Read(buf []byte) (int, error) {
+	out := make([]byte, maxMessageSize)
+
 	// Read everything into the buffer.
-	c, err := r.r.Read(buf)
+	c, err := r.r.Read(out)
 	if err != nil {
 		return c, err
 	}
 
-	//fmt.Printf("Read: buf\n%s\n", hex.Dump(buf))
+	fmt.Printf("Read: all (len %d)\n%s\n", c, hex.Dump(out[:c]))
 
-	// Initialize the Nonce by reading from the buffer
+	// Initialize the Nonce by writing from the buffer
 	var nonce Nonce
-	if _, err := nonce.Write(buf); err != nil {
+	if _, err := nonce.Write(out); err != nil {
 		return 0, err
 	}
 
 	// The message is the rest of what was read.
-	var msg = buf[len(nonce):c]
+	var msg = out[len(nonce):c]
 
-	//fmt.Printf("Read: nonce\n%s\n", hex.Dump(nonce.Array()[:]))
-	//fmt.Printf("Read: msg\n%s\n", hex.Dump(msg))
+	fmt.Printf("Read: nonce\n%s\n", hex.Dump(nonce.Array()[:]))
+	fmt.Printf("Read: msg\n%s\n", hex.Dump(msg))
 
 	// Decrypt the message.
 	res, ok := box.Open(nil, msg, nonce.Array(), r.pub, r.priv)
 	if !ok {
 		return 0, errors.New("decryption failed")
 	}
+
+	fmt.Printf("Read: result\n%s\n", hex.Dump(res))
 
 	// Copy the result into the read buffer.
 	copy(buf, res)
@@ -100,6 +110,10 @@ type SecureWriter struct {
 }
 
 func (w *SecureWriter) Write(buf []byte) (int, error) {
+	if len(buf) > maxMessageSize {
+		return 0, errors.New(fmt.Sprintf("input is too long. Got: %d bytes, max: %d", len(buf), maxMessageSize))
+	}
+
 	// Create a nonce.
 	nonce := newNonce()
 	if nonce == nil {
@@ -112,12 +126,12 @@ func (w *SecureWriter) Write(buf []byte) (int, error) {
 		return 0, err
 	}
 
-	//fmt.Printf("Write: nonce\n%s\n", hex.Dump(nonce.Array()[:]))
+	fmt.Printf("Write: nonce\n%s\n", hex.Dump(nonce.Array()[:]))
 
 	// Encrypt the message to the output buffer.
 	sealed := box.Seal(out, buf, nonce.Array(), w.pub, w.priv)
 
-	//fmt.Printf("Write: sealed\n%s\n", hex.Dump(sealed))
+	fmt.Printf("Write: sealed\n%s\n", hex.Dump(sealed))
 
 	// Write the encrypted message to the writer.
 	return w.w.Write(sealed)
