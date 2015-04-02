@@ -95,8 +95,8 @@ func NewClient(priv *[32]byte) *Client {
 	return &Client{priv: priv, logger: logger}
 }
 
-// ReadPublicKey retrieves the public key from the server.
-func (c *Client) ReadPublicKey(conn net.Conn) error {
+// RetrievePublicKey retrieves the public key from the server.
+func (c *Client) RetrievePublicKey(conn net.Conn) error {
 	// Receive private key from the server.
 	c.info("Receiving public key...\n")
 	c.pub = &[32]byte{}
@@ -109,7 +109,7 @@ func (c *Client) ReadPublicKey(conn net.Conn) error {
 
 // SecureConn returns a ReadWriteCloser to communicate with the server.
 // Requires that a public key has been provided, probably by reading it via
-// ReadPublicKey.
+// RetrievePublicKey.
 func (c *Client) SecureConn(conn net.Conn) io.ReadWriteCloser {
 	r := NewSecureReader(conn, c.priv, c.pub)
 	w := NewSecureWriter(conn, c.priv, c.pub)

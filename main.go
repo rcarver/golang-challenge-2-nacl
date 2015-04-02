@@ -35,10 +35,10 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 		return nil, err
 	}
 
-	// Initialize the client, perform key handshake and return
-	// a piped connection to the server.
+	// Initialize the client, perform key handshake and return a secure
+	// connection to the server.
 	c := NewClient(priv)
-	if err := c.ReadPublicKey(conn); err != nil {
+	if err := c.RetrievePublicKey(conn); err != nil {
 		return nil, err
 	}
 	return c.SecureConn(conn), nil
