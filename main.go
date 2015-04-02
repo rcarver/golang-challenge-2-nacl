@@ -42,23 +42,29 @@ func (rw *RW) Close() error {
 // connects to the server, perform the handshake
 // and return a reader/writer.
 func Dial(addr string) (io.ReadWriteCloser, error) {
+	logger := log.New(os.Stderr, "client: ", log.Lshortfile)
+
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
-	priv, pub := &[32]byte{}, &[32]byte{}
-	_, err = conn.Read(priv[:])
-	if err != nil {
-		return nil, err
-	}
-	_, err = conn.Read(pub[:])
-	if err != nil {
+	// Send private key to the server.
+	logger.Printf("Sending private key...\n")
+	priv := &[32]byte{'p', 'r', 'i', 'v', '!'}
+	if _, err = conn.Write(priv[:]); err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("PRIV: %s\n", priv)
-	fmt.Printf("PUB: %s\n", pub)
+	// Receive private key from the server.
+	logger.Printf("Receiving public key...\n")
+	pub := &[32]byte{}
+	if _, err = conn.Read(pub[:]); err != nil {
+		return nil, err
+	}
+
+	logger.Printf("priv key: %s\n", priv)
+	logger.Printf("pub key: %s\n", pub)
 
 	r := NewSecureReader(conn, priv, pub)
 	w := NewSecureWriter(conn, priv, pub)
@@ -69,6 +75,7 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 
 // Serve starts a secure echo server on the given listener.
 func Serve(l net.Listener) error {
+	logger := log.New(os.Stderr, "server: ", log.Lshortfile)
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -76,28 +83,36 @@ func Serve(l net.Listener) error {
 		}
 		defer conn.Close()
 
-		// Generate keys.
-		priv, pub := &[32]byte{'p', 'r', 'i', 'v', '!'}, &[32]byte{'p', 'u', 'b', '!'}
+		// Send public key to the client.
+		logger.Printf("Sending public key...\n")
+		pub := &[32]byte{'p', 'u', 'b', '!'}
+		if _, err := conn.Write(pub[:]); err != nil {
+			return err
+		}
+		// Receive private key from the client.
+		logger.Printf("Receiving private key...\n")
+		priv := &[32]byte{}
+		if _, err = conn.Read(priv[:]); err != nil {
+			return err
+		}
 
-		// Send private and public keys when a client connects.
-		// The client should read 32 bytes for each key.
-		conn.Write(priv[:])
-		conn.Write(pub[:])
+		logger.Printf("priv key: %s\n", priv)
+		logger.Printf("pub key: %s\n", pub)
 
-		fmt.Printf("server Reading...\n")
+		logger.Printf("Reading...\n")
 		buf := make([]byte, 2048)
 		c, err := conn.Read(buf)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("server Read: %d\n%s\n", c, hex.Dump(buf[:c]))
+		logger.Printf("Read: %d\n%s\n", c, hex.Dump(buf[:c]))
 
-		fmt.Printf("server Writing...\n")
+		logger.Printf("Writing...\n")
 		c, err = conn.Write(buf[:c])
 		if err != nil {
 			return err
 		}
-		fmt.Printf("server Wrote %d\n", c)
+		logger.Printf("Wrote %d\n", c)
 	}
 	return nil
 }
