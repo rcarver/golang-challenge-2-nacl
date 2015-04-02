@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -49,12 +48,8 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 		return nil, err
 	}
 
-	// Send private key to the server.
-	logger.Printf("Sending private key...\n")
+	// Generate private key.
 	priv := &[32]byte{'p', 'r', 'i', 'v', '!'}
-	if _, err = conn.Write(priv[:]); err != nil {
-		return nil, err
-	}
 
 	// Receive private key from the server.
 	logger.Printf("Receiving public key...\n")
@@ -62,13 +57,11 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 	if _, err = conn.Read(pub[:]); err != nil {
 		return nil, err
 	}
+	logger.Printf("Received public key: %v\n", pub)
 
-	logger.Printf("priv key: %s\n", priv)
-	logger.Printf("pub key: %s\n", pub)
-
+	// Set up secure read and write.
 	r := NewSecureReader(conn, priv, pub)
 	w := NewSecureWriter(conn, priv, pub)
-
 	return &RW{r, w, conn}, nil
 
 }
@@ -83,36 +76,31 @@ func Serve(l net.Listener) error {
 		}
 		defer conn.Close()
 
+		// Generate public key.
+		pub := &[32]byte{'p', 'u', 'b', '!'}
+
 		// Send public key to the client.
 		logger.Printf("Sending public key...\n")
-		pub := &[32]byte{'p', 'u', 'b', '!'}
 		if _, err := conn.Write(pub[:]); err != nil {
 			return err
 		}
-		// Receive private key from the client.
-		logger.Printf("Receiving private key...\n")
-		priv := &[32]byte{}
-		if _, err = conn.Read(priv[:]); err != nil {
-			return err
-		}
 
-		logger.Printf("priv key: %s\n", priv)
-		logger.Printf("pub key: %s\n", pub)
-
+		// Read input from the client.
 		logger.Printf("Reading...\n")
 		buf := make([]byte, 2048)
 		c, err := conn.Read(buf)
 		if err != nil {
 			return err
 		}
-		logger.Printf("Read: %d\n%s\n", c, hex.Dump(buf[:c]))
+		logger.Printf("Read %d bytes\n", c)
 
+		// Echo it back unmodified.
 		logger.Printf("Writing...\n")
 		c, err = conn.Write(buf[:c])
 		if err != nil {
 			return err
 		}
-		logger.Printf("Wrote %d\n", c)
+		logger.Printf("Wrote %d bytes\n", c)
 	}
 	return nil
 }
@@ -139,16 +127,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("main Writing...\n")
 	if _, err := conn.Write([]byte(os.Args[2])); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("main Reading...\n")
 	buf := make([]byte, len(os.Args[2]))
 	n, err := conn.Read(buf)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("main Read: %s\n", buf[:n])
 	fmt.Printf("%s\n", buf[:n])
 }

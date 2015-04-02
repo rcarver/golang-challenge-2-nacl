@@ -158,7 +158,9 @@ func TestSecureDial(t *testing.T) {
 			go func(c net.Conn) {
 				defer c.Close()
 				key := [32]byte{}
+				// send key to client
 				c.Write(key[:])
+				// read from client, expect it to be encrypted
 				buf := make([]byte, 2048)
 				n, err := c.Read(buf)
 				if err != nil {
