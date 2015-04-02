@@ -103,12 +103,3 @@ func Test_Nonce_Write_fail(t *testing.T) {
 		t.Fatalf("want 23 bytes written, got %d", got)
 	}
 }
-
-func Test_Nonce_Array(t *testing.T) {
-	n := Nonce{'a', 'b', 'c'}
-	a := [24]byte{'a', 'b', 'c'}
-
-	if *n.Array() != a {
-		t.Fatalf("want %s, got %s", n, a)
-	}
-}

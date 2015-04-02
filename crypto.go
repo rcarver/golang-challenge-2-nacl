@@ -52,13 +52,3 @@ func (n *Nonce) Write(buf []byte) (int, error) {
 	}
 	return c, nil
 }
-
-// Array returns a byte array of the nonce value.
-// NOTE: this shouldn't be necessary but I can't figure out how to cast Nonce to *[24]byte.
-func (n *Nonce) Array() *[nonceSize]byte {
-	var b [nonceSize]byte
-	for i, x := range n {
-		b[i] = x
-	}
-	return &b
-}
