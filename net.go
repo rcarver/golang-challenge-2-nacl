@@ -27,7 +27,7 @@ func (s *Server) Serve(l net.Listener) error {
 			conn := <-conns
 			defer conn.Close()
 			if err := s.handleClient(conn); err != nil {
-				s.log("Error handling client: %s", err)
+				s.info("Error handling client: %s", err)
 			}
 		}()
 	}
@@ -36,27 +36,27 @@ func (s *Server) Serve(l net.Listener) error {
 // handleClient is the main handler for client/server behavior.
 func (s *Server) handleClient(conn net.Conn) error {
 	// Send public key to the client.
-	s.log("Sending public key...\n")
+	s.info("Sending public key...\n")
 	if _, err := conn.Write(s.pub[:]); err != nil {
 		return err
 	}
 
 	// Read input from the client.
-	s.log("Reading...\n")
+	s.info("Reading...\n")
 	buf := make([]byte, 2048)
 	c, err := conn.Read(buf)
 	if err != nil {
 		return err
 	}
-	s.log("Read %d bytes\n", c)
+	s.info("Read %d bytes\n", c)
 
 	// Echo it back unmodified.
-	s.log("Writing...\n")
+	s.info("Writing...\n")
 	c, err = conn.Write(buf[:c])
 	if err != nil {
 		return err
 	}
-	s.log("Wrote %d bytes\n", c)
+	s.info("Wrote %d bytes\n", c)
 
 	return nil
 }
@@ -68,7 +68,7 @@ func (s *Server) acceptClients(l net.Listener) chan net.Conn {
 		for {
 			conn, err := l.Accept()
 			if err != nil {
-				s.log("Failed to accept client: %s", err)
+				s.info("Failed to accept client: %s", err)
 				return
 			}
 			ch <- conn
@@ -77,7 +77,7 @@ func (s *Server) acceptClients(l net.Listener) chan net.Conn {
 	return ch
 }
 
-func (s *Server) log(str string, v ...interface{}) {
+func (s *Server) info(str string, v ...interface{}) {
 	s.logger.Printf(str, v...)
 }
 
@@ -98,12 +98,12 @@ func NewClient(priv *[32]byte) *Client {
 // GetPublicKey retrieves the public key from the server.
 func (c *Client) ReadPublicKey(conn net.Conn) error {
 	// Receive private key from the server.
-	c.log("Receiving public key...\n")
+	c.info("Receiving public key...\n")
 	c.pub = &[32]byte{}
 	if _, err := conn.Read(c.pub[:]); err != nil {
 		return err
 	}
-	c.log("Received public key: %v\n", c.pub)
+	c.info("Received public key: %v\n", c.pub)
 	return nil
 }
 
@@ -134,6 +134,6 @@ func (rw *connIO) Close() error {
 	return rw.c.Close()
 }
 
-func (c *Client) log(str string, v ...interface{}) {
+func (c *Client) info(str string, v ...interface{}) {
 	c.logger.Printf(str, v...)
 }
