@@ -1,3 +1,5 @@
+verify: vet test test_echo
+
 golang-challenge-2-nacl: *.go
 	go build .
 
@@ -14,4 +16,12 @@ test_echo: golang-challenge-2-nacl
 	./golang-challenge-2-nacl 8080 "hello world"
 	killall golang-challenge-2-nacl
 
-.PHONY: build server client test_echo
+test:
+	go test .
+
+vet:
+	go fmt .
+	go vet .
+	$$GOPATH/bin/golint .
+
+.PHONY: build server client test_echo vet verify
