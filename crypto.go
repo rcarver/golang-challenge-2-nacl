@@ -9,7 +9,7 @@ import (
 
 const keySize = 32
 
-// NewKey returns a byte array with a random value.
+// NewKey returns a byte array with a random value, to be used as a crypto key.
 func NewKey() (*[keySize]byte, error) {
 	var key [keySize]byte
 	_, err := io.ReadFull(rand.Reader, key[:])
@@ -28,13 +28,9 @@ type Nonce [nonceSize]byte
 // NewNonce returns a new Nonce initialized with a random value.
 func NewNonce() *Nonce {
 	var nonce Nonce
-	buf := make([]byte, nonceSize)
-	_, err := rand.Read(buf)
+	_, err := io.ReadFull(rand.Reader, nonce[:])
 	if err != nil {
 		return nil
-	}
-	for i, v := range buf {
-		nonce[i] = v
 	}
 	return &nonce
 }
