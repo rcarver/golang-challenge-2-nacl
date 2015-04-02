@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -9,53 +8,6 @@ import (
 
 	"golang.org/x/crypto/nacl/box"
 )
-
-// Nonce is the unique input for each new encryption. This type implements
-// io.Reader and io.Writer to easily move the byte value around.
-type Nonce [nonceSize]byte
-
-const nonceSize = 24
-
-// newNonce returns a new Nonce with a random value.
-func newNonce() *Nonce {
-	var nonce Nonce
-	buf := make([]byte, nonceSize)
-	_, err := rand.Read(buf)
-	if err != nil {
-		return nil
-	}
-	for i, v := range buf {
-		nonce[i] = v
-	}
-	return &nonce
-}
-
-// Read puts the nonce value into the buffer.
-func (n *Nonce) Read(buf []byte) (int, error) {
-	c := copy(buf, n[:])
-	if c < nonceSize {
-		return c, errors.New(fmt.Sprintf("did not read the entire value (read %d)", c))
-	}
-	return c, nil
-}
-
-// Write sets the nonce value by reading the buffer.
-func (n *Nonce) Write(buf []byte) (int, error) {
-	c := copy(n[:], buf)
-	if c < nonceSize {
-		return c, errors.New(fmt.Sprintf("did not write the entire value (wrote %d)", c))
-	}
-	return c, nil
-}
-
-// Array returns a byte array of the nonce value.
-func (n *Nonce) Array() *[nonceSize]byte {
-	var b [nonceSize]byte
-	for i, x := range n {
-		b[i] = x
-	}
-	return &b
-}
 
 // maxMessageSize is the greatest number of bytes that can be transmitted
 // as a single message using SecureReader and SecureWriter.
@@ -115,7 +67,7 @@ func (w *SecureWriter) Write(buf []byte) (int, error) {
 	}
 
 	// Create a nonce.
-	nonce := newNonce()
+	nonce := NewNonce()
 	if nonce == nil {
 		return 0, errors.New("failed to create nonce")
 	}
