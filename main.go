@@ -24,7 +24,10 @@ func NewSecureWriter(w io.Writer, priv, pub *[32]byte) io.Writer {
 // and return a reader/writer.
 func Dial(addr string) (io.ReadWriteCloser, error) {
 	// Generate private key.
-	priv := &[32]byte{'p', 'r', 'i', 'v', '!'}
+	priv, err := NewKey()
+	if err != nil {
+		return nil, err
+	}
 
 	// Connect on the network.
 	conn, err := net.Dial("tcp", addr)
@@ -45,7 +48,10 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 // Serve starts a secure echo server on the given listener.
 func Serve(l net.Listener) error {
 	// Generate public key.
-	pub := &[32]byte{'p', 'u', 'b', '!'}
+	pub, err := NewKey()
+	if err != nil {
+		return err
+	}
 	return NewServer(pub).Serve(l)
 }
 
