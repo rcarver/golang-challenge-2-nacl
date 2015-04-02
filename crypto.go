@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"io"
 )
@@ -39,7 +38,7 @@ func NewNonce() *Nonce {
 func (n *Nonce) Read(buf []byte) (int, error) {
 	c := copy(buf, n[:])
 	if c < nonceSize {
-		return c, errors.New(fmt.Sprintf("did not read the entire value (read %d)", c))
+		return c, fmt.Errorf("did not read the entire value (read %d)", c)
 	}
 	return c, nil
 }
@@ -48,7 +47,7 @@ func (n *Nonce) Read(buf []byte) (int, error) {
 func (n *Nonce) Write(buf []byte) (int, error) {
 	c := copy(n[:], buf)
 	if c < nonceSize {
-		return c, errors.New(fmt.Sprintf("did not write the entire value (wrote %d)", c))
+		return c, fmt.Errorf("did not write the entire value (wrote %d)", c)
 	}
 	return c, nil
 }

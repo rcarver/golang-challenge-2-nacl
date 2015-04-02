@@ -95,7 +95,7 @@ func NewClient(priv *[32]byte) *Client {
 	return &Client{priv: priv, logger: logger}
 }
 
-// GetPublicKey retrieves the public key from the server.
+// ReadPublicKey retrieves the public key from the server.
 func (c *Client) ReadPublicKey(conn net.Conn) error {
 	// Receive private key from the server.
 	c.info("Receiving public key...\n")

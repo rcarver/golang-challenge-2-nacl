@@ -13,12 +13,15 @@ import (
 // as a single message using SecureReader and SecureWriter.
 var maxMessageSize = 3072
 
+// SecureReader implements io.Reader but uses a private/public keypair to
+// decrypt messages from the underlying Reader.
 type SecureReader struct {
 	r    io.Reader
 	priv *[32]byte
 	pub  *[32]byte
 }
 
+// Read implements io.Reader.
 func (r *SecureReader) Read(buf []byte) (int, error) {
 	out := make([]byte, maxMessageSize)
 
@@ -56,15 +59,18 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 	return len(res), nil
 }
 
+// SecureWriter implements io.Writer but encrypts with a private/public keypair
+// before writing to the underlying writer.
 type SecureWriter struct {
 	w    io.Writer
 	priv *[32]byte
 	pub  *[32]byte
 }
 
+// Write implements io.Writer.
 func (w *SecureWriter) Write(buf []byte) (int, error) {
 	if len(buf) > maxMessageSize {
-		return 0, errors.New(fmt.Sprintf("input is too long. Got: %d bytes, max: %d", len(buf), maxMessageSize))
+		return 0, fmt.Errorf("input is too long. Got: %d bytes, max: %d", len(buf), maxMessageSize)
 	}
 
 	// Create a nonce.
