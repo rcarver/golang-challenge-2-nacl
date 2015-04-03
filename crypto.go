@@ -10,11 +10,13 @@ import (
 
 const keySize = 32
 
+// KeyPair is a private/public keypair.
 type KeyPair struct {
 	priv *[keySize]byte
 	pub  *[keySize]byte
 }
 
+// NewKeyPair initializes a KeyPair with strong values for the keys.
 func NewKeyPair() *KeyPair {
 	priv, pub, err := box.GenerateKey(rand.Reader)
 	if err != nil {
