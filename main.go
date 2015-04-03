@@ -37,7 +37,7 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 
 	// Initialize the client, perform key handshake and return a secure
 	// connection to the server.
-	c := NewClient(keyPair)
+	c := NewClient()
 	if err := c.Handshake(conn); err != nil {
 		return nil, err
 	}

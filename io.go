@@ -31,7 +31,7 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 		return c, err
 	}
 
-	fmt.Printf("Read: all (len %d)\n%s\n", c, hex.Dump(out[:c]))
+	fmt.Printf("Read: %d bytes\n%s\n", c, hex.Dump(out[:c]))
 
 	// Initialize the Nonce by writing from the buffer
 	var nonce Nonce
@@ -91,7 +91,7 @@ func (w *SecureWriter) Write(buf []byte) (int, error) {
 	nonceBytes := [24]byte(*nonce)
 	sealed := box.Seal(out, buf, &nonceBytes, w.pub, w.priv)
 
-	fmt.Printf("Write: sealed\n%s\n", hex.Dump(sealed))
+	fmt.Printf("Write: sealed %d bytes\n%s\n", len(sealed), hex.Dump(sealed))
 
 	// Write the encrypted message to the writer.
 	return w.w.Write(sealed)

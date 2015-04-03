@@ -22,24 +22,6 @@ func Test_NewKeyPair(t *testing.T) {
 	check(k.pub)
 }
 
-func Test_NewKey(t *testing.T) {
-	k, err := NewKey()
-	if err != nil {
-		t.Fatalf("want no error, got %s", err)
-	}
-
-	if got := len(k); got != 32 {
-		t.Fatalf("want 32, got %d", got)
-	}
-
-	var a = make([]byte, len(k))
-	var b = make([]byte, len(k))
-	copy(a, k[:])
-	if bytes.Equal(a, b) {
-		t.Fatalf("want non-zero value")
-	}
-}
-
 func Test_NewNonce(t *testing.T) {
 	n := NewNonce()
 

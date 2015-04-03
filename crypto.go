@@ -10,29 +10,19 @@ import (
 
 const keySize = 32
 
-// KeyPair is a private/public keypair.
+// KeyPair is a public/private keypair
 type KeyPair struct {
-	priv *[keySize]byte
 	pub  *[keySize]byte
+	priv *[keySize]byte
 }
 
 // NewKeyPair initializes a KeyPair with strong values for the keys.
 func NewKeyPair() *KeyPair {
-	priv, pub, err := box.GenerateKey(rand.Reader)
+	pub, priv, err := box.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil
 	}
-	return &KeyPair{priv, pub}
-}
-
-// NewKey returns a byte array with a random value, to be used as a crypto key.
-func NewKey() (*[keySize]byte, error) {
-	var key [keySize]byte
-	_, err := io.ReadFull(rand.Reader, key[:])
-	if err != nil {
-		return &key, err
-	}
-	return &key, nil
+	return &KeyPair{pub, priv}
 }
 
 const nonceSize = 24
