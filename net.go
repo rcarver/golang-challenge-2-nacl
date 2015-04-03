@@ -102,29 +102,30 @@ func (c *Client) RetrievePublicKey(conn io.Reader) error {
 func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
 	r := NewSecureReader(conn, c.priv, c.pub)
 	w := NewSecureWriter(conn, c.priv, c.pub)
-	return &connIO{r, w, conn}
-}
-
-type connIO struct {
-	r io.Reader
-	w io.Writer
-	c io.Closer
-}
-
-func (rw *connIO) Read(buf []byte) (int, error) {
-	return rw.r.Read(buf)
-}
-
-func (rw *connIO) Write(buf []byte) (int, error) {
-	return rw.w.Write(buf)
-}
-
-func (rw *connIO) Close() error {
-	return rw.c.Close()
+	return &rwc{r, w, conn}
 }
 
 func (c *Client) info(str string, v ...interface{}) {
 	if c.logger != nil {
 		c.logger.Printf(str, v...)
 	}
+}
+
+// rwc implements io.ReadWriteCloser with an object for each role.
+type rwc struct {
+	r io.Reader
+	w io.Writer
+	c io.Closer
+}
+
+func (io *rwc) Read(buf []byte) (int, error) {
+	return io.r.Read(buf)
+}
+
+func (io *rwc) Write(buf []byte) (int, error) {
+	return io.w.Write(buf)
+}
+
+func (io *rwc) Close() error {
+	return io.c.Close()
 }

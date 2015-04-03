@@ -31,7 +31,7 @@ func Test_Server_handleClient(t *testing.T) {
 		}
 	}()
 
-	if err := s.handleClient(&connIO{r, w, w}); err != nil {
+	if err := s.handleClient(&rwc{r, w, w}); err != nil {
 		t.Fatalf("want no error in handleClient")
 	}
 
@@ -69,7 +69,7 @@ func Test_Client_SecureConn(t *testing.T) {
 		pub:  &[32]byte{'b'},
 	}
 	r, w := io.Pipe()
-	sc := c.SecureConn(&connIO{r, w, w})
+	sc := c.SecureConn(&rwc{r, w, w})
 
 	var out = make([]byte, 1)
 	go sc.Read(out)
