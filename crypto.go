@@ -4,9 +4,24 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+
+	"golang.org/x/crypto/nacl/box"
 )
 
 const keySize = 32
+
+type KeyPair struct {
+	priv *[keySize]byte
+	pub  *[keySize]byte
+}
+
+func NewKeyPair() *KeyPair {
+	priv, pub, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil
+	}
+	return &KeyPair{priv, pub}
+}
 
 // NewKey returns a byte array with a random value, to be used as a crypto key.
 func NewKey() (*[keySize]byte, error) {
