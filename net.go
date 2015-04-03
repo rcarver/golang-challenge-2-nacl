@@ -21,16 +21,20 @@ func NewServer(pub *[32]byte) *Server {
 
 // Serve starts an infinite loop waiting for client connections.
 func (s *Server) Serve(l net.Listener) error {
-	conns := s.acceptClients(l)
 	for {
-		go func() {
-			conn := <-conns
-			defer conn.Close()
+		conn, err := l.Accept()
+		if err != nil {
+			s.info("Failed to accept client: %s", err)
+			return err
+		}
+		defer conn.Close()
+		go func(conn net.Conn) {
 			if err := s.handleClient(conn); err != nil {
 				s.info("Error handling client: %s", err)
 			}
-		}()
+		}(conn)
 	}
+	return nil
 }
 
 // handleClient is the main handler for client/server behavior.
@@ -59,22 +63,6 @@ func (s *Server) handleClient(conn io.ReadWriter) error {
 	s.info("Wrote %d bytes\n", c)
 
 	return nil
-}
-
-// acceptClients pushes new client connections to a channel.
-func (s *Server) acceptClients(l net.Listener) chan net.Conn {
-	ch := make(chan net.Conn)
-	go func() {
-		for {
-			conn, err := l.Accept()
-			if err != nil {
-				s.info("Failed to accept client: %s", err)
-				return
-			}
-			ch <- conn
-		}
-	}()
-	return ch
 }
 
 func (s *Server) info(str string, v ...interface{}) {
