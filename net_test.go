@@ -6,9 +6,16 @@ import (
 	"testing"
 )
 
+func fakeKeyPair(priv, pub string) *KeyPair {
+	a, b := [32]byte{}, [32]byte{}
+	copy(a[:], priv)
+	copy(b[:], pub)
+	return &KeyPair{priv: &a, pub: &b}
+}
+
 func Test_Server_handleClient(t *testing.T) {
 	s := Server{
-		pub: &[32]byte{'b'},
+		keyPair: fakeKeyPair("a", "b"),
 	}
 	r, w := io.Pipe()
 
@@ -49,24 +56,23 @@ func Test_Server_handleClient(t *testing.T) {
 
 }
 
-func Test_Client_RetrievePublicKey(t *testing.T) {
+func Test_Client_Handshake(t *testing.T) {
 	c := Client{}
 
 	r := bytes.NewBufferString("abcd")
-	if err := c.RetrievePublicKey(r); err != nil {
+	if err := c.Handshake(r); err != nil {
 		t.Fatalf("want no error")
 	}
 
 	expected := [32]byte{'a', 'b', 'c', 'd'}
-	if *c.pub != expected {
-		t.Fatalf("want %#v, got %#v", expected, c.pub)
+	if *c.peersPubKey != expected {
+		t.Fatalf("want %#v, got %#v", expected, c.peersPubKey)
 	}
 }
 
 func Test_Client_SecureConn(t *testing.T) {
 	c := Client{
-		priv: &[32]byte{'a'},
-		pub:  &[32]byte{'b'},
+		keyPair: fakeKeyPair("a", "b"),
 	}
 	r, w := io.Pipe()
 	sc := c.SecureConn(&rwc{r, w, w})

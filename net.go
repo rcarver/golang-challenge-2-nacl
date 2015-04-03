@@ -9,14 +9,14 @@ import (
 
 // Server is the encrypted echo server.
 type Server struct {
-	pub    *[32]byte
-	logger *log.Logger
+	keyPair *KeyPair
+	logger  *log.Logger
 }
 
-// NewServer initializes a new Server with the public key.
-func NewServer(pub *[32]byte) *Server {
+// NewServer initializes a new Server with the key pair.
+func NewServer(keyPair *KeyPair) *Server {
 	logger := log.New(os.Stderr, "server: ", log.Lshortfile)
-	return &Server{pub: pub, logger: logger}
+	return &Server{keyPair: keyPair, logger: logger}
 }
 
 // Serve starts an infinite loop waiting for client connections.
@@ -40,7 +40,7 @@ func (s *Server) Serve(l net.Listener) error {
 func (s *Server) handleClient(conn io.ReadWriter) error {
 	// Send public key to the client.
 	s.info("Sending public key...\n")
-	if _, err := conn.Write(s.pub[:]); err != nil {
+	if _, err := conn.Write(s.keyPair.pub[:]); err != nil {
 		return err
 	}
 
@@ -72,36 +72,36 @@ func (s *Server) info(str string, v ...interface{}) {
 
 // Client is the secure echo client.
 type Client struct {
-	priv   *[32]byte
-	pub    *[32]byte
-	logger *log.Logger
+	keyPair     *KeyPair
+	peersPubKey *[32]byte
+	logger      *log.Logger
 }
 
 // NewClient initializes a Client with the private key. Its public key
 // will be retrieved from the server.
-func NewClient(priv *[32]byte) *Client {
+func NewClient(keyPair *KeyPair) *Client {
 	logger := log.New(os.Stderr, "client: ", log.Lshortfile)
-	return &Client{priv: priv, logger: logger}
+	return &Client{keyPair: keyPair, logger: logger}
 }
 
-// RetrievePublicKey retrieves the public key from the server.
-func (c *Client) RetrievePublicKey(conn io.Reader) error {
+// Handshake retrieves the public key from the server.
+func (c *Client) Handshake(conn io.Reader) error {
 	// Receive private key from the server.
 	c.info("Receiving public key...\n")
-	c.pub = &[32]byte{}
-	if _, err := conn.Read(c.pub[:]); err != nil {
+	c.peersPubKey = &[32]byte{}
+	if _, err := conn.Read(c.peersPubKey[:]); err != nil {
 		return err
 	}
-	c.info("Received public key: %v\n", c.pub)
+	c.info("Received public key: %v\n", c.peersPubKey)
 	return nil
 }
 
 // SecureConn returns a ReadWriteCloser to communicate with the server.
-// Requires that a public key has been provided, probably by reading it via
-// RetrievePublicKey.
+// Requires that a peer's public key has been provided, probably by reading it
+// via Handshake.
 func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
-	r := NewSecureReader(conn, c.priv, c.pub)
-	w := NewSecureWriter(conn, c.priv, c.pub)
+	r := NewSecureReader(conn, c.keyPair.priv, c.keyPair.pub)
+	w := NewSecureWriter(conn, c.keyPair.priv, c.keyPair.pub)
 	return &rwc{r, w, conn}
 }
 

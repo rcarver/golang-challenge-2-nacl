@@ -24,9 +24,9 @@ func NewSecureWriter(w io.Writer, priv, pub *[32]byte) io.Writer {
 // and return a reader/writer.
 func Dial(addr string) (io.ReadWriteCloser, error) {
 	// Generate private key.
-	priv, err := NewKey()
-	if err != nil {
-		return nil, err
+	keyPair := NewKeyPair()
+	if keyPair == nil {
+		return nil, fmt.Errorf("keypair was not created")
 	}
 
 	// Connect on the network.
@@ -37,8 +37,8 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 
 	// Initialize the client, perform key handshake and return a secure
 	// connection to the server.
-	c := NewClient(priv)
-	if err := c.RetrievePublicKey(conn); err != nil {
+	c := NewClient(keyPair)
+	if err := c.Handshake(conn); err != nil {
 		return nil, err
 	}
 	return c.SecureConn(conn), nil
@@ -48,11 +48,11 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 // Serve starts a secure echo server on the given listener.
 func Serve(l net.Listener) error {
 	// Generate public key.
-	pub, err := NewKey()
-	if err != nil {
-		return err
+	keyPair := NewKeyPair()
+	if keyPair == nil {
+		return fmt.Errorf("keypair was not created")
 	}
-	return NewServer(pub).Serve(l)
+	return NewServer(keyPair).Serve(l)
 }
 
 func main() {
