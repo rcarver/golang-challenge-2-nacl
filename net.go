@@ -34,7 +34,6 @@ func (s *Server) Serve(l net.Listener) error {
 			}
 		}(conn)
 	}
-	return nil
 }
 
 // handleClient is the main handler for client/server behavior.
