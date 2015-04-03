@@ -34,7 +34,7 @@ func (s *Server) Serve(l net.Listener) error {
 }
 
 // handleClient is the main handler for client/server behavior.
-func (s *Server) handleClient(conn net.Conn) error {
+func (s *Server) handleClient(conn io.ReadWriter) error {
 	// Send public key to the client.
 	s.info("Sending public key...\n")
 	if _, err := conn.Write(s.pub[:]); err != nil {
@@ -78,7 +78,9 @@ func (s *Server) acceptClients(l net.Listener) chan net.Conn {
 }
 
 func (s *Server) info(str string, v ...interface{}) {
-	s.logger.Printf(str, v...)
+	if s.logger != nil {
+		s.logger.Printf(str, v...)
+	}
 }
 
 // Client is the secure echo client.
@@ -96,7 +98,7 @@ func NewClient(priv *[32]byte) *Client {
 }
 
 // RetrievePublicKey retrieves the public key from the server.
-func (c *Client) RetrievePublicKey(conn net.Conn) error {
+func (c *Client) RetrievePublicKey(conn io.Reader) error {
 	// Receive private key from the server.
 	c.info("Receiving public key...\n")
 	c.pub = &[32]byte{}
@@ -110,7 +112,7 @@ func (c *Client) RetrievePublicKey(conn net.Conn) error {
 // SecureConn returns a ReadWriteCloser to communicate with the server.
 // Requires that a public key has been provided, probably by reading it via
 // RetrievePublicKey.
-func (c *Client) SecureConn(conn net.Conn) io.ReadWriteCloser {
+func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
 	r := NewSecureReader(conn, c.priv, c.pub)
 	w := NewSecureWriter(conn, c.priv, c.pub)
 	return &connIO{r, w, conn}
@@ -119,7 +121,7 @@ func (c *Client) SecureConn(conn net.Conn) io.ReadWriteCloser {
 type connIO struct {
 	r io.Reader
 	w io.Writer
-	c net.Conn
+	c io.Closer
 }
 
 func (rw *connIO) Read(buf []byte) (int, error) {
@@ -135,5 +137,7 @@ func (rw *connIO) Close() error {
 }
 
 func (c *Client) info(str string, v ...interface{}) {
-	c.logger.Printf(str, v...)
+	if c.logger != nil {
+		c.logger.Printf(str, v...)
+	}
 }
