@@ -16,7 +16,7 @@ type Server struct {
 // NewServer initializes a new Server with the public key.
 func NewServer(pub *[32]byte) *Server {
 	logger := log.New(os.Stderr, "server: ", log.Lshortfile)
-	return &Server{pub, logger}
+	return &Server{pub: pub, logger: logger}
 }
 
 // Serve starts an infinite loop waiting for client connections.
@@ -27,8 +27,8 @@ func (s *Server) Serve(l net.Listener) error {
 			s.info("Failed to accept client: %s", err)
 			return err
 		}
-		defer conn.Close()
 		go func(conn net.Conn) {
+			defer conn.Close()
 			if err := s.handleClient(conn); err != nil {
 				s.info("Error handling client: %s", err)
 			}
