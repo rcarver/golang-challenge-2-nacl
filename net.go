@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -41,17 +42,18 @@ func (s *Server) Serve(l net.Listener) error {
 
 // handshake performs the key swap with the client.
 func (s *Server) handshake(conn io.ReadWriter) error {
-	// Send public key to the client.
+
+	// Send public key to the server
 	s.info("Sending public key...\n")
 	if _, err := conn.Write(s.keyPair.pub[:]); err != nil {
 		return err
 	}
 
-	// Send private key to the client.
-	s.info("Sending private key...\n")
-	if _, err := conn.Write(s.keyPair.priv[:]); err != nil {
+	// Receive private key from the client.
+	if _, err := conn.Read(s.keyPair.priv[:]); err != nil {
 		return err
 	}
+	s.info("Received private key: %v\n", s.keyPair.priv)
 
 	return nil
 }
@@ -96,27 +98,25 @@ type Client struct {
 
 // NewClient initializes a Client with the private key. Its public key
 // will be retrieved from the server.
-func NewClient() *Client {
+func NewClient(keyPair *KeyPair) *Client {
 	logger := log.New(os.Stderr, "client: ", log.Lshortfile)
-	return &Client{keyPair: &KeyPair{}, logger: logger}
+	return &Client{keyPair: keyPair, logger: logger}
 }
 
 // Handshake retrieves the public key from the server.
 func (c *Client) Handshake(conn io.ReadWriter) error {
 
 	// Receive public key from the server.
-	c.keyPair.pub = &[32]byte{}
 	if _, err := conn.Read(c.keyPair.pub[:]); err != nil {
-		return err
+		return fmt.Errorf("error reading: %s", err)
 	}
 	c.info("Received public key: %v\n", c.keyPair.pub)
 
-	// Receive private key from the server.
-	c.keyPair.priv = &[32]byte{}
-	if _, err := conn.Read(c.keyPair.priv[:]); err != nil {
-		return err
+	// Send private key to the server
+	c.info("Sending private key...\n")
+	if _, err := conn.Write(c.keyPair.priv[:]); err != nil {
+		return fmt.Errorf("error writing: %s", err)
 	}
-	c.info("Received private key: %v\n", c.keyPair.priv)
 
 	return nil
 }

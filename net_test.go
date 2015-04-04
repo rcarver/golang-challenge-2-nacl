@@ -17,35 +17,29 @@ func Test_Server_handshake(t *testing.T) {
 	s := Server{
 		keyPair: fakeKeyPair("a", "b"),
 	}
-	r, w := io.Pipe()
 
-	var pubKey, privKey = make([]byte, 1024), make([]byte, 1024)
-	var pubKeySize, privKeySize = 0, 0
+	r := bytes.NewBuffer([]byte{})
+	w := bytes.NewBuffer([]byte{})
 
-	// Fake Client performs the expected IO.
-	go func() {
-		var err error
-		if pubKeySize, err = r.Read(pubKey); err != nil {
-			t.Fatalf("want no error reading pubKey")
-		}
-		if privKeySize, err = r.Read(privKey); err != nil {
-			t.Fatalf("want no error reading privKey")
-		}
-	}()
+	// Put the priv key on the read buffer, as if from the client.
+	priv := [32]byte{'p', 'r', 'i'}
+	r.Write(priv[:])
 
-	if err := s.handshake(&rwc{r, w, w}); err != nil {
+	// Fake a io.ReadWriter
+	rw := struct {
+		io.Reader
+		io.Writer
+	}{r, w}
+
+	if err := s.handshake(rw); err != nil {
 		t.Fatalf("want no error in handshake")
 	}
 
-	expectedPubKey := make([]byte, 32)
-	copy(expectedPubKey, "a")
-	if !bytes.Equal(pubKey[:pubKeySize], expectedPubKey) {
-		t.Fatalf("want %s, got %s", expectedPubKey, pubKey[:1])
+	if !bytes.Equal(w.Bytes(), s.keyPair.pub[:]) {
+		t.Fatalf("pub want %#v, got %#v", s.keyPair.pub[:], w.Bytes())
 	}
-	expectedPrivKey := make([]byte, 32)
-	copy(expectedPrivKey, "b")
-	if !bytes.Equal(privKey[:privKeySize], expectedPrivKey) {
-		t.Fatalf("want %s, got %s", expectedPrivKey, privKey[:1])
+	if !bytes.Equal(s.keyPair.priv[:], priv[:]) {
+		t.Fatalf("priv want %#v, got %#v", priv, s.keyPair.priv)
 	}
 }
 
@@ -81,24 +75,31 @@ func Test_Server_handle(t *testing.T) {
 }
 
 func Test_Client_Handshake(t *testing.T) {
-	c := Client{keyPair: &KeyPair{}}
+	c := Client{
+		keyPair: fakeKeyPair("a", "b"),
+	}
+	r := bytes.NewBuffer([]byte{})
+	w := bytes.NewBuffer([]byte{})
 
+	// Put the public key on the read buffer, as if from the server.
 	pub := [32]byte{'p', 'u', 'b'}
-	priv := [32]byte{'p', 'r', 'i'}
-	buf := []byte{}
-	copy(buf, pub[:])
-	copy(buf, priv[:])
+	r.Write(pub[:])
 
-	r := bytes.NewBuffer(buf)
-	if err := c.Handshake(r); err != nil {
-		t.Fatalf("want no error")
+	// Fake a io.ReadWriter
+	rw := struct {
+		io.Reader
+		io.Writer
+	}{r, w}
+
+	if err := c.Handshake(rw); err != nil {
+		t.Fatalf("want no error, got %s", err)
 	}
 
-	if *c.keyPair.pub != pub {
-		t.Fatalf("want %#v, got %#v", pub, c.keyPair.pub)
+	if !bytes.Equal(c.keyPair.pub[:], pub[:]) {
+		t.Fatalf("pub want %#v, got %#v", pub, c.keyPair.pub)
 	}
-	if *c.keyPair.priv != priv {
-		t.Fatalf("want %#v, got %#v", priv, c.keyPair.priv)
+	if !bytes.Equal(w.Bytes(), c.keyPair.priv[:]) {
+		t.Fatalf("priv want %#v, got %#v", c.keyPair.priv[:], w.Bytes())
 	}
 }
 
