@@ -27,6 +27,9 @@ func (s *Server) Serve(l net.Listener) error {
 		}
 		go func(conn net.Conn) {
 			defer conn.Close()
+			// Each client gets its own set of key set to handshake
+			// with because we need to manage the pub/priv keypair
+			// independently for each client.
 			ks := s.keySet.Copy()
 			err := s.handshake(conn, ks)
 			if err != nil {
