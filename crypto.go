@@ -10,7 +10,7 @@ import (
 
 const keySize = 32
 
-// KeySet manages all of the keys involved in public key cryptology and key
+// KeySet manages all of the keys involved in public key cryptography and key
 // exchange.
 type KeySet struct {
 	pub      *[keySize]byte
