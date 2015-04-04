@@ -14,20 +14,19 @@ import (
 
 // NewSecureReader instantiates a new SecureReader
 func NewSecureReader(r io.Reader, priv, pub *[32]byte) io.Reader {
-	return &SecureReader{r, priv, pub}
+	return &SecureReader{r: r, pub: pub, priv: priv}
 }
 
 // NewSecureWriter instantiates a new SecureWriter
 func NewSecureWriter(w io.Writer, priv, pub *[32]byte) io.Writer {
-	return &SecureWriter{w, priv, pub}
+	return &SecureWriter{w: w, pub: pub, priv: priv}
 }
 
 // Dial generates a private/public key pair,
 // connects to the server, perform the handshake
 // and return a reader/writer.
 func Dial(addr string) (io.ReadWriteCloser, error) {
-	// Generate private key.
-	_, priv, err := box.GenerateKey(rand.Reader)
+	pub, priv, err := box.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +39,7 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 
 	// Initialize the client, perform key handshake and return a secure
 	// connection to the server.
-	c := NewClient(priv)
+	c := NewClient(pub, priv)
 	if err := c.Handshake(conn); err != nil {
 		return nil, err
 	}
@@ -50,11 +49,11 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 
 // Serve starts a secure echo server on the given listener.
 func Serve(l net.Listener) error {
-	pub, _, err := box.GenerateKey(rand.Reader)
+	pub, priv, err := box.GenerateKey(rand.Reader)
 	if err != nil {
 		return err
 	}
-	return NewServer(pub).Serve(l)
+	return NewServer(pub, priv).Serve(l)
 }
 
 func main() {
