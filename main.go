@@ -36,7 +36,7 @@ func NewSecureWriter(w io.Writer, priv, pub *[32]byte) io.Writer {
 func Dial(addr string) (io.ReadWriteCloser, error) {
 	keySet := NewKeySet()
 	if keySet == nil {
-		return nil, fmt.Errorf("failed to create a KeySet")
+		return nil, fmt.Errorf("failed to create a keys")
 	}
 
 	// Connect on the network.
@@ -45,7 +45,7 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 		return nil, err
 	}
 
-	// Initialize the client, perform key handshake and return a secure
+	// Initialize the client, perform handshake and return a secure
 	// connection to the server.
 	c := NewClient(keySet)
 	if err := c.Handshake(conn); err != nil {
@@ -59,7 +59,7 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 func Serve(l net.Listener) error {
 	keySet := NewKeySet()
 	if keySet == nil {
-		return fmt.Errorf("failed to create a KeySet")
+		return fmt.Errorf("failed to create a keys")
 	}
 	return NewServer(keySet).Serve(l)
 }
