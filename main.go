@@ -12,6 +12,17 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
+// debugging turns on extra logging.
+var debugging = false
+
+// debugf is a Printf wrapper used to output helpful debugging output. It may
+// be used throughout this package for convenience.
+func debugf(msg string, v ...interface{}) {
+	if debugging == true {
+		fmt.Printf(msg, v...)
+	}
+}
+
 // NewSecureReader instantiates a new SecureReader
 func NewSecureReader(r io.Reader, priv, pub *[32]byte) io.Reader {
 	return &SecureReader{r: r, pub: pub, priv: priv}

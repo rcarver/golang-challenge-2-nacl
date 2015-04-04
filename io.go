@@ -32,7 +32,7 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 		return c, err
 	}
 
-	fmt.Printf("Read: %d bytes\n%s\n", c, hex.Dump(out[:c]))
+	debugf("Read: %d bytes\n%s\n", c, hex.Dump(out[:c]))
 
 	// Initialize the Nonce by writing from the buffer
 	var nonce Nonce
@@ -43,8 +43,8 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 	// The message is the rest of what was read.
 	var msg = out[len(nonce):c]
 
-	fmt.Printf("Read: nonce\n%s\n", hex.Dump(nonce[:]))
-	fmt.Printf("Read: msg\n%s\n", hex.Dump(msg))
+	debugf("Read: nonce\n%s\n", hex.Dump(nonce[:]))
+	debugf("Read: msg\n%s\n", hex.Dump(msg))
 
 	// Decrypt the message.
 	nonceBytes := [24]byte(nonce)
@@ -53,7 +53,7 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 		return 0, errors.New("decryption failed")
 	}
 
-	fmt.Printf("Read: result\n%s\n", hex.Dump(res))
+	debugf("Read: result\n%s\n", hex.Dump(res))
 
 	// Copy the result into the read buffer.
 	copy(buf, res)
@@ -86,13 +86,13 @@ func (w *SecureWriter) Write(buf []byte) (int, error) {
 		return 0, err
 	}
 
-	fmt.Printf("Write: nonce\n%s\n", hex.Dump(nonce[:]))
+	debugf("Write: nonce\n%s\n", hex.Dump(nonce[:]))
 
 	// Encrypt the message to the output buffer.
 	nonceBytes := [24]byte(*nonce)
 	sealed := box.Seal(out, buf, &nonceBytes, w.pub, w.priv)
 
-	fmt.Printf("Write: sealed %d bytes\n%s\n", len(sealed), hex.Dump(sealed))
+	debugf("Write: sealed %d bytes\n%s\n", len(sealed), hex.Dump(sealed))
 
 	// Write the encrypted message to the writer.
 	return w.w.Write(sealed)
