@@ -17,8 +17,8 @@ var maxMessageSize = 3072
 // decrypt messages from the underlying Reader.
 type SecureReader struct {
 	r    io.Reader
-	priv *[32]byte
 	pub  *[32]byte
+	priv *[32]byte
 }
 
 // Read implements io.Reader. Expects that data read from the reader has been
@@ -64,8 +64,8 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 // before writing to the underlying writer.
 type SecureWriter struct {
 	w    io.Writer
-	priv *[32]byte
 	pub  *[32]byte
+	priv *[32]byte
 }
 
 // Write implements io.Writer.
