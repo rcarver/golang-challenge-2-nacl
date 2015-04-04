@@ -1,15 +1,12 @@
 package main
 
 import (
-	"crypto/rand"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
-
-	"golang.org/x/crypto/nacl/box"
 )
 
 // debugging turns on extra logging.
@@ -37,9 +34,9 @@ func NewSecureWriter(w io.Writer, priv, pub *[32]byte) io.Writer {
 // connects to the server, perform the handshake
 // and return a reader/writer.
 func Dial(addr string) (io.ReadWriteCloser, error) {
-	pub, priv, err := box.GenerateKey(rand.Reader)
-	if err != nil {
-		return nil, err
+	keySet := NewKeySet()
+	if keySet == nil {
+		return nil, fmt.Errorf("failed to create a KeySet")
 	}
 
 	// Connect on the network.
@@ -50,7 +47,7 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 
 	// Initialize the client, perform key handshake and return a secure
 	// connection to the server.
-	c := NewClient(pub, priv)
+	c := NewClient(keySet)
 	if err := c.Handshake(conn); err != nil {
 		return nil, err
 	}
@@ -60,11 +57,11 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 
 // Serve starts a secure echo server on the given listener.
 func Serve(l net.Listener) error {
-	pub, priv, err := box.GenerateKey(rand.Reader)
-	if err != nil {
-		return err
+	keySet := NewKeySet()
+	if keySet == nil {
+		return fmt.Errorf("failed to create a KeySet")
 	}
-	return NewServer(pub, priv).Serve(l)
+	return NewServer(keySet).Serve(l)
 }
 
 func main() {

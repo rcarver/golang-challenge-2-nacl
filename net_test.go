@@ -6,11 +6,17 @@ import (
 	"testing"
 )
 
+func newFakeSetSet(pub, priv, peersPub string) *KeySet {
+	a, b, c := [32]byte{}, [32]byte{}, [32]byte{}
+	copy(a[:], pub)
+	copy(b[:], priv)
+	copy(c[:], peersPub)
+	return &KeySet{&a, &b, &c}
+}
+
 func Test_Server_handshake(t *testing.T) {
-	s := Server{
-		pub:  &[32]byte{'a'},
-		priv: &[32]byte{'b'},
-	}
+	ks := newFakeSetSet("a", "b", "")
+	s := Server{ks}
 
 	r := bytes.NewBuffer([]byte{})
 	w := bytes.NewBuffer([]byte{})
@@ -25,26 +31,24 @@ func Test_Server_handshake(t *testing.T) {
 		io.Writer
 	}{r, w}
 
-	peersPub, err := s.handshake(rw)
+	err := s.handshake(rw, ks)
 	if err != nil {
 		t.Fatalf("want no error in handshake")
 	}
 
 	// Server sent its public key to client.
-	if !bytes.Equal(s.pub[:], w.Bytes()) {
-		t.Fatalf("send key: want %#v, got %#v", s.pub, w.Bytes())
+	if !bytes.Equal(ks.pub[:], w.Bytes()) {
+		t.Fatalf("send key: want %#v, got %#v", ks.pub, w.Bytes())
 	}
 	// Server received client's public key.
-	if !bytes.Equal(clientPub[:], peersPub[:]) {
-		t.Fatalf("recv key: want %#v, got %#v", clientPub, peersPub)
+	if !bytes.Equal(clientPub[:], ks.peersPub[:]) {
+		t.Fatalf("recv key: want %#v, got %#v", clientPub, ks.peersPub)
 	}
 }
 
 func Test_Server_handle(t *testing.T) {
-	s := Server{
-		pub:  &[32]byte{'a'},
-		priv: &[32]byte{'b'},
-	}
+	ks := newFakeSetSet("", "b", "a")
+	s := Server{ks}
 	r, w := io.Pipe()
 
 	var out = make([]byte, 1024)
@@ -53,8 +57,8 @@ func Test_Server_handle(t *testing.T) {
 	// Fake Client performs the expected IO. Uses server's keys for simplicity.
 	go func() {
 		var err error
-		sr := NewSecureReader(r, s.priv, s.pub)
-		sw := NewSecureWriter(w, s.priv, s.pub)
+		sr := NewSecureReader(r, ks.priv, ks.peersPub)
+		sw := NewSecureWriter(w, ks.priv, ks.peersPub)
 		if _, err := sw.Write([]byte("hello")); err != nil {
 			t.Fatalf("want no error writing message")
 		}
@@ -69,7 +73,7 @@ func Test_Server_handle(t *testing.T) {
 		io.Writer
 	}{r, w}
 
-	if err := s.handle(rw, s.pub); err != nil {
+	if err := s.handle(rw, ks); err != nil {
 		t.Fatalf("want no error in handle")
 	}
 
@@ -80,10 +84,8 @@ func Test_Server_handle(t *testing.T) {
 }
 
 func Test_Client_Handshake(t *testing.T) {
-	c := Client{
-		pub:  &[32]byte{'a'},
-		priv: &[32]byte{'b'},
-	}
+	ks := newFakeSetSet("a", "b", "")
+	c := Client{ks}
 	r := bytes.NewBuffer([]byte{})
 	w := bytes.NewBuffer([]byte{})
 
@@ -102,20 +104,18 @@ func Test_Client_Handshake(t *testing.T) {
 	}
 
 	// Client sent its public key to server.
-	if !bytes.Equal(c.pub[:], w.Bytes()) {
-		t.Fatalf("send key: want %#v, got %#v", c.pub, w.Bytes())
+	if !bytes.Equal(ks.pub[:], w.Bytes()) {
+		t.Fatalf("send key: want %#v, got %#v", ks.pub, w.Bytes())
 	}
 	// Client received server's public key.
-	if !bytes.Equal(serverPub[:], c.peersPub[:]) {
-		t.Fatalf("recv key: want %#v, got %#v", serverPub, c.peersPub)
+	if !bytes.Equal(serverPub[:], ks.peersPub[:]) {
+		t.Fatalf("recv key: want %#v, got %#v", serverPub, ks.peersPub)
 	}
 }
 
 func Test_Client_SecureConn(t *testing.T) {
-	c := Client{
-		priv:     &[32]byte{'b'},
-		peersPub: &[32]byte{'a'},
-	}
+	ks := newFakeSetSet("", "b", "a")
+	c := Client{ks}
 	r, w := io.Pipe()
 
 	// Fake a io.ReadWriteCloser

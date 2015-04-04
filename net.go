@@ -8,14 +8,13 @@ import (
 
 // Server is the secure echo server.
 type Server struct {
-	pub  *[32]byte
-	priv *[32]byte
+	keySet *KeySet
 }
 
-// NewServer initializes a new Server with the key pair. The server will
+// NewServer initializes a new Server with its own keys. The server will
 // perform a handshake with each client to exchange public keys.
-func NewServer(pub, priv *[32]byte) *Server {
-	return &Server{pub: pub, priv: priv}
+func NewServer(ks *KeySet) *Server {
+	return &Server{ks}
 }
 
 // Serve starts an infinite loop waiting for client connections.
@@ -28,11 +27,12 @@ func (s *Server) Serve(l net.Listener) error {
 		}
 		go func(conn net.Conn) {
 			defer conn.Close()
-			peersPub, err := s.handshake(conn)
+			ks := s.keySet.Copy()
+			err := s.handshake(conn, ks)
 			if err != nil {
 				s.debug("Error performing handshake: %s", err)
 			}
-			if err := s.handle(conn, peersPub); err != nil {
+			if err := s.handle(conn, ks); err != nil {
 				s.debug("Error handling client: %s", err)
 			}
 		}(conn)
@@ -40,29 +40,20 @@ func (s *Server) Serve(l net.Listener) error {
 }
 
 // handshake performs the key exchange with the client.
-func (s *Server) handshake(conn io.ReadWriter) (*[32]byte, error) {
-
-	// Send public key to the client.
-	s.debug("Sending public key %v\n", s.pub)
-	if _, err := conn.Write(s.pub[:]); err != nil {
-		return nil, err
+func (s *Server) handshake(conn io.ReadWriter, ks *KeySet) error {
+	s.debug("Performing key exchange...\n")
+	if err := ks.Exchange(conn); err != nil {
+		return err
 	}
-
-	// Receive public key from the client.
-	peersPub := [32]byte{}
-	if _, err := conn.Read(peersPub[:]); err != nil {
-		return nil, err
-	}
-	s.debug("Received peer's public key: %v\n", peersPub)
-
-	return &peersPub, nil
+	return nil
 }
 
 // handle takes care of client/server behavior after the handshake.
-func (s *Server) handle(conn io.ReadWriter, peersPub *[32]byte) error {
+func (s *Server) handle(conn io.ReadWriter, keySet *KeySet) error {
 
-	sr := NewSecureReader(conn, s.priv, peersPub)
-	sw := NewSecureWriter(conn, s.priv, peersPub)
+	pub, priv := keySet.PeersKeyPair()
+	sr := NewSecureReader(conn, priv, pub)
+	sw := NewSecureWriter(conn, priv, pub)
 
 	// Read decrypted data from the client.
 	s.debug("Reading...\n")
@@ -90,33 +81,21 @@ func (s *Server) debug(str string, v ...interface{}) {
 
 // Client is the secure echo client.
 type Client struct {
-	pub      *[32]byte
-	priv     *[32]byte
-	peersPub *[32]byte
+	keySet *KeySet
 }
 
-// NewClient initializes a Client with its own key pair. The client will
-// perform a handshake with the server to exchange public keys.
-func NewClient(pub, priv *[32]byte) *Client {
-	return &Client{pub: pub, priv: priv}
+// NewClient initializes a Client with its own keys. The client will perform a
+// handshake with the server to exchange public keys.
+func NewClient(ks *KeySet) *Client {
+	return &Client{ks}
 }
 
 // Handshake performs the public key exchange with the server.
 func (c *Client) Handshake(conn io.ReadWriter) error {
-
-	// Receive public key from the server.
-	c.peersPub = &[32]byte{}
-	if _, err := conn.Read(c.peersPub[:]); err != nil {
-		return fmt.Errorf("error reading: %s", err)
+	c.debug("Performing key exchange...\n")
+	if err := c.keySet.Exchange(conn); err != nil {
+		return err
 	}
-	c.debug("Received peer's public key: %v\n", c.peersPub)
-
-	// Send public key to the server
-	c.debug("Sending public key %v\n", c.pub)
-	if _, err := conn.Write(c.pub[:]); err != nil {
-		return fmt.Errorf("error writing: %s", err)
-	}
-
 	return nil
 }
 
@@ -124,8 +103,9 @@ func (c *Client) Handshake(conn io.ReadWriter) error {
 // Requires that the peer's public key has been provided, probably by getting
 // it via Handshake.
 func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
-	r := NewSecureReader(conn, c.priv, c.peersPub)
-	w := NewSecureWriter(conn, c.priv, c.peersPub)
+	pub, priv := c.keySet.PeersKeyPair()
+	r := NewSecureReader(conn, priv, pub)
+	w := NewSecureWriter(conn, priv, pub)
 	return struct {
 		io.Reader
 		io.Writer

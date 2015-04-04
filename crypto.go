@@ -4,7 +4,62 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+
+	"golang.org/x/crypto/nacl/box"
 )
+
+const keySize = 32
+
+// KeySet manages all of the keys involved in public key cryptology and key
+// exchange.
+type KeySet struct {
+	pub      *[keySize]byte
+	priv     *[keySize]byte
+	peersPub *[keySize]byte
+}
+
+// NewKeySet returns a new KeySet initialized a public/private key pair. The
+// peer's public key is nil.
+func NewKeySet() *KeySet {
+	pub, priv, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil
+	}
+	return &KeySet{pub, priv, nil}
+}
+
+// Copy returns a new KeySet with the public and private key, and no peers
+// public key.
+func (ks *KeySet) Copy() *KeySet {
+	return &KeySet{ks.pub, ks.priv, nil}
+}
+
+// Exchange performs a key exchange over the ReadWriter. It first writes the
+// public key to the Writer, then sets the peer's public key by reading from
+// the Reader.
+func (ks *KeySet) Exchange(rw io.ReadWriter) error {
+
+	// Send public key.
+	debugf("Sending public key %v\n", ks.pub)
+	if _, err := rw.Write(ks.pub[:]); err != nil {
+		return err
+	}
+
+	// Receive public key from the client.
+	ks.peersPub = &[keySize]byte{}
+	if _, err := rw.Read(ks.peersPub[:]); err != nil {
+		return err
+	}
+	debugf("Received peer's public key: %v\n", ks.peersPub)
+
+	return nil
+}
+
+// PeersKeyPair returns the public/private keys from the peer. Assumes that
+// Exchange has been called in order to set the peer's public key.
+func (ks *KeySet) PeersKeyPair() (*[keySize]byte, *[keySize]byte) {
+	return ks.peersPub, ks.priv
+}
 
 const nonceSize = 24
 
