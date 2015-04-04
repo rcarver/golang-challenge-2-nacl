@@ -8,9 +8,9 @@ import (
 
 func fakeKeyPair(pub, priv string) *KeyPair {
 	a, b := [32]byte{}, [32]byte{}
-	copy(a[:], priv)
-	copy(b[:], pub)
-	return &KeyPair{priv: &a, pub: &b}
+	copy(a[:], pub)
+	copy(b[:], priv)
+	return &KeyPair{pub: &a, priv: &b}
 }
 
 func Test_Server_handshake(t *testing.T) {
@@ -35,10 +35,12 @@ func Test_Server_handshake(t *testing.T) {
 		t.Fatalf("want no error in handshake")
 	}
 
-	if !bytes.Equal(w.Bytes(), s.keyPair.pub[:]) {
-		t.Fatalf("pub want %#v, got %#v", s.keyPair.pub[:], w.Bytes())
+	want := make([]byte, 32)
+	copy(want[:], "a")
+	if !bytes.Equal(want, w.Bytes()) {
+		t.Fatalf("pub want %#v, got %#v", want, w.Bytes())
 	}
-	if !bytes.Equal(s.keyPair.priv[:], priv[:]) {
+	if !bytes.Equal(priv[:], s.keyPair.priv[:]) {
 		t.Fatalf("priv want %#v, got %#v", priv, s.keyPair.priv)
 	}
 }
@@ -101,11 +103,13 @@ func Test_Client_Handshake(t *testing.T) {
 		t.Fatalf("want no error, got %s", err)
 	}
 
-	if !bytes.Equal(c.keyPair.pub[:], pub[:]) {
+	if !bytes.Equal(pub[:], c.keyPair.pub[:]) {
 		t.Fatalf("pub want %#v, got %#v", pub, c.keyPair.pub)
 	}
-	if !bytes.Equal(w.Bytes(), c.keyPair.priv[:]) {
-		t.Fatalf("priv want %#v, got %#v", c.keyPair.priv[:], w.Bytes())
+	want := make([]byte, 32)
+	copy(want[:], "b")
+	if !bytes.Equal(want, w.Bytes()) {
+		t.Fatalf("priv want %#v, got %#v", want, w.Bytes())
 	}
 }
 
