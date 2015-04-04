@@ -8,6 +8,9 @@ build: golang-challenge-2-nacl
 server: golang-challenge-2-nacl
 	./golang-challenge-2-nacl -l 8080
 
+kill: 
+	killall golang-challenge-2-nacl
+
 client: golang-challenge-2-nacl
 	./golang-challenge-2-nacl 8080 foo
 
