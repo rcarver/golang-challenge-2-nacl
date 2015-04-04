@@ -31,7 +31,7 @@ func (s *Server) Serve(l net.Listener) error {
 		go func(conn net.Conn) {
 			defer conn.Close()
 			if err := s.handshake(conn); err != nil {
-				s.info("Error performing handshake client: %s", err)
+				s.info("Error performing handshake: %s", err)
 			}
 			if err := s.handle(conn); err != nil {
 				s.info("Error handling client: %s", err)
@@ -127,30 +127,15 @@ func (c *Client) Handshake(conn io.ReadWriter) error {
 func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
 	r := NewSecureReader(conn, c.keyPair.pub, c.keyPair.priv)
 	w := NewSecureWriter(conn, c.keyPair.pub, c.keyPair.priv)
-	return &rwc{r, w, conn}
+	return struct {
+		io.Reader
+		io.Writer
+		io.Closer
+	}{r, w, conn}
 }
 
 func (c *Client) info(str string, v ...interface{}) {
 	if c.logger != nil {
 		c.logger.Printf(str, v...)
 	}
-}
-
-// rwc implements io.ReadWriteCloser with an object for each role.
-type rwc struct {
-	r io.Reader
-	w io.Writer
-	c io.Closer
-}
-
-func (io *rwc) Read(buf []byte) (int, error) {
-	return io.r.Read(buf)
-}
-
-func (io *rwc) Write(buf []byte) (int, error) {
-	return io.w.Write(buf)
-}
-
-func (io *rwc) Close() error {
-	return io.c.Close()
 }

@@ -64,7 +64,13 @@ func Test_Server_handle(t *testing.T) {
 		}
 	}()
 
-	if err := s.handle(&rwc{r, w, w}); err != nil {
+	// Fake a io.ReadWriter
+	rw := struct {
+		io.Reader
+		io.Writer
+	}{r, w}
+
+	if err := s.handle(rw); err != nil {
 		t.Fatalf("want no error in handle")
 	}
 
@@ -108,7 +114,15 @@ func Test_Client_SecureConn(t *testing.T) {
 		keyPair: fakeKeyPair("a", "b"),
 	}
 	r, w := io.Pipe()
-	sc := c.SecureConn(&rwc{r, w, w})
+
+	// Fake a io.ReadWriteCloser
+	rwc := struct {
+		io.Reader
+		io.Writer
+		io.Closer
+	}{r, w, w}
+
+	sc := c.SecureConn(rwc)
 
 	var out = make([]byte, 1)
 	go sc.Read(out)
