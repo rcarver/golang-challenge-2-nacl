@@ -8,10 +8,9 @@ import (
 	"os"
 )
 
-// Server is the encrypted echo server.
+// Server is the secure echo server.
 type Server struct {
 	pub    *[32]byte
-	priv   *[32]byte
 	logger *log.Logger
 }
 
@@ -42,10 +41,10 @@ func (s *Server) Serve(l net.Listener) error {
 	}
 }
 
-// handshake performs the key swap with the client.
+// handshake performs the key exchange with the client.
 func (s *Server) handshake(conn io.ReadWriter) (*[32]byte, error) {
 
-	// Send public key to the server
+	// Send public key to the client.
 	s.info("Sending public key...\n")
 	if _, err := conn.Write(s.pub[:]); err != nil {
 		return nil, err
@@ -61,7 +60,7 @@ func (s *Server) handshake(conn io.ReadWriter) (*[32]byte, error) {
 	return &priv, nil
 }
 
-// handle is the main handler for client/server behavior.
+// handle takes care of client/server behavior after the handshake.
 func (s *Server) handle(conn io.ReadWriter, priv *[32]byte) error {
 
 	sr := NewSecureReader(conn, s.pub, priv)
@@ -95,19 +94,19 @@ func (s *Server) info(str string, v ...interface{}) {
 
 // Client is the secure echo client.
 type Client struct {
-	priv   *[32]byte
 	pub    *[32]byte
+	priv   *[32]byte
 	logger *log.Logger
 }
 
-// NewClient initializes a Client with the private key. Its public key
-// will be retrieved from the server.
+// NewClient initializes a Client with the private key. Its public key will be
+// retrieved from the server.
 func NewClient(priv *[32]byte) *Client {
 	logger := log.New(os.Stderr, "client: ", log.Lshortfile)
 	return &Client{priv: priv, logger: logger}
 }
 
-// Handshake retrieves the public key from the server.
+// Handshake performs the key exchange with the server.
 func (c *Client) Handshake(conn io.ReadWriter) error {
 
 	// Receive public key from the server.
@@ -127,7 +126,7 @@ func (c *Client) Handshake(conn io.ReadWriter) error {
 }
 
 // SecureConn returns a ReadWriteCloser to communicate with the server.
-// Requires that a peer's public key has been provided, probably by reading it
+// Requires that the peer's public key has been provided, probably by reading it
 // via Handshake.
 func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
 	r := NewSecureReader(conn, c.pub, c.priv)

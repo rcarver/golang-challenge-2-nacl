@@ -13,7 +13,7 @@ import (
 // as a single message using SecureReader and SecureWriter.
 var maxMessageSize = 3072
 
-// SecureReader implements io.Reader but uses a private/public keypair to
+// SecureReader implements io.Reader and uses a private/public keypair to
 // decrypt messages from the underlying Reader.
 type SecureReader struct {
 	r    io.Reader
@@ -21,7 +21,8 @@ type SecureReader struct {
 	pub  *[32]byte
 }
 
-// Read implements io.Reader.
+// Read implements io.Reader. Expects that data read from the reader has been
+// encrypted.
 func (r *SecureReader) Read(buf []byte) (int, error) {
 	out := make([]byte, maxMessageSize)
 
@@ -59,7 +60,7 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 	return len(res), nil
 }
 
-// SecureWriter implements io.Writer but encrypts with a private/public keypair
+// SecureWriter implements io.Writer and encrypts with a private/public keypair
 // before writing to the underlying writer.
 type SecureWriter struct {
 	w    io.Writer
