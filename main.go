@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
+
+	"golang.org/x/crypto/nacl/box"
 )
 
 // NewSecureReader instantiates a new SecureReader
@@ -24,9 +27,9 @@ func NewSecureWriter(w io.Writer, priv, pub *[32]byte) io.Writer {
 // and return a reader/writer.
 func Dial(addr string) (io.ReadWriteCloser, error) {
 	// Generate private key.
-	keyPair := NewKeyPair()
-	if keyPair == nil {
-		return nil, fmt.Errorf("keypair was not created")
+	_, priv, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, err
 	}
 
 	// Connect on the network.
@@ -37,7 +40,7 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 
 	// Initialize the client, perform key handshake and return a secure
 	// connection to the server.
-	c := NewClient(keyPair)
+	c := NewClient(priv)
 	if err := c.Handshake(conn); err != nil {
 		return nil, err
 	}
@@ -47,12 +50,11 @@ func Dial(addr string) (io.ReadWriteCloser, error) {
 
 // Serve starts a secure echo server on the given listener.
 func Serve(l net.Listener) error {
-	// Generate public key.
-	keyPair := NewKeyPair()
-	if keyPair == nil {
-		return fmt.Errorf("keypair was not created")
+	pub, _, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		return err
 	}
-	return NewServer(keyPair).Serve(l)
+	return NewServer(pub).Serve(l)
 }
 
 func main() {

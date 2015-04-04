@@ -6,24 +6,17 @@ import (
 	"testing"
 )
 
-func fakeKeyPair(pub, priv string) *KeyPair {
-	a, b := [32]byte{}, [32]byte{}
-	copy(a[:], pub)
-	copy(b[:], priv)
-	return &KeyPair{pub: &a, priv: &b}
-}
-
 func Test_Server_handshake(t *testing.T) {
 	s := Server{
-		keyPair: fakeKeyPair("a", "b"),
+		pub: &[32]byte{'a'},
 	}
 
 	r := bytes.NewBuffer([]byte{})
 	w := bytes.NewBuffer([]byte{})
 
 	// Put the priv key on the read buffer, as if from the client.
-	priv := [32]byte{'p', 'r', 'i'}
-	r.Write(priv[:])
+	serverPriv := [32]byte{'p', 'r', 'i'}
+	r.Write(serverPriv[:])
 
 	// Fake a io.ReadWriter
 	rw := struct {
@@ -31,33 +24,37 @@ func Test_Server_handshake(t *testing.T) {
 		io.Writer
 	}{r, w}
 
-	if err := s.handshake(rw); err != nil {
+	clientPriv, err := s.handshake(rw)
+	if err != nil {
 		t.Fatalf("want no error in handshake")
 	}
 
-	want := make([]byte, 32)
-	copy(want[:], "a")
-	if !bytes.Equal(want, w.Bytes()) {
-		t.Fatalf("pub want %#v, got %#v", want, w.Bytes())
+	serverPub := make([]byte, 32)
+	copy(serverPub[:], "a")
+	if !bytes.Equal(serverPub, w.Bytes()) {
+		t.Fatalf("pub want %#v, got %#v", serverPub, w.Bytes())
 	}
-	if !bytes.Equal(priv[:], s.keyPair.priv[:]) {
-		t.Fatalf("priv want %#v, got %#v", priv, s.keyPair.priv)
+	if !bytes.Equal(serverPriv[:], clientPriv[:]) {
+		t.Fatalf("priv want %#v, got %#v", serverPriv, clientPriv)
 	}
 }
 
 func Test_Server_handle(t *testing.T) {
-	keyPair := fakeKeyPair("a", "b")
-	s := Server{keyPair: keyPair}
+	s := Server{
+		pub: &[32]byte{'a'},
+	}
 	r, w := io.Pipe()
 
 	var out = make([]byte, 1024)
 	var outSize = 0
 
+	clientPriv := &[32]byte{'b'}
+
 	// Fake Client performs the expected IO.
 	go func() {
 		var err error
-		sr := NewSecureReader(r, keyPair.pub, keyPair.priv)
-		sw := NewSecureWriter(w, keyPair.pub, keyPair.priv)
+		sr := NewSecureReader(r, s.pub, clientPriv)
+		sw := NewSecureWriter(w, s.pub, clientPriv)
 		if _, err := sw.Write([]byte("hello")); err != nil {
 			t.Fatalf("want no error writing message")
 		}
@@ -72,7 +69,7 @@ func Test_Server_handle(t *testing.T) {
 		io.Writer
 	}{r, w}
 
-	if err := s.handle(rw); err != nil {
+	if err := s.handle(rw, clientPriv); err != nil {
 		t.Fatalf("want no error in handle")
 	}
 
@@ -84,14 +81,15 @@ func Test_Server_handle(t *testing.T) {
 
 func Test_Client_Handshake(t *testing.T) {
 	c := Client{
-		keyPair: fakeKeyPair("a", "b"),
+		pub:  &[32]byte{'a'},
+		priv: &[32]byte{'b'},
 	}
 	r := bytes.NewBuffer([]byte{})
 	w := bytes.NewBuffer([]byte{})
 
 	// Put the public key on the read buffer, as if from the server.
-	pub := [32]byte{'p', 'u', 'b'}
-	r.Write(pub[:])
+	serverPub := [32]byte{'p', 'u', 'b'}
+	r.Write(serverPub[:])
 
 	// Fake a io.ReadWriter
 	rw := struct {
@@ -103,19 +101,19 @@ func Test_Client_Handshake(t *testing.T) {
 		t.Fatalf("want no error, got %s", err)
 	}
 
-	if !bytes.Equal(pub[:], c.keyPair.pub[:]) {
-		t.Fatalf("pub want %#v, got %#v", pub, c.keyPair.pub)
+	if !bytes.Equal(serverPub[:], c.pub[:]) {
+		t.Fatalf("pub want %#v, got %#v", serverPub, c.pub)
 	}
-	want := make([]byte, 32)
-	copy(want[:], "b")
-	if !bytes.Equal(want, w.Bytes()) {
-		t.Fatalf("priv want %#v, got %#v", want, w.Bytes())
+	clientPriv := &[32]byte{'b'}
+	if !bytes.Equal(clientPriv[:], w.Bytes()) {
+		t.Fatalf("priv want %#v, got %#v", clientPriv, w.Bytes())
 	}
 }
 
 func Test_Client_SecureConn(t *testing.T) {
 	c := Client{
-		keyPair: fakeKeyPair("a", "b"),
+		pub:  &[32]byte{'a'},
+		priv: &[32]byte{'b'},
 	}
 	r, w := io.Pipe()
 

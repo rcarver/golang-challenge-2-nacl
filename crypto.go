@@ -4,26 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-
-	"golang.org/x/crypto/nacl/box"
 )
-
-const keySize = 32
-
-// KeyPair is a public/private keypair
-type KeyPair struct {
-	pub  *[keySize]byte
-	priv *[keySize]byte
-}
-
-// NewKeyPair initializes a KeyPair with strong values for the keys.
-func NewKeyPair() *KeyPair {
-	pub, priv, err := box.GenerateKey(rand.Reader)
-	if err != nil {
-		return nil
-	}
-	return &KeyPair{pub, priv}
-}
 
 const nonceSize = 24
 

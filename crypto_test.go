@@ -5,23 +5,6 @@ import (
 	"testing"
 )
 
-func Test_NewKeyPair(t *testing.T) {
-	k := NewKeyPair()
-	if k == nil {
-		t.Fatalf("want a key, got nil")
-	}
-	var check = func(k *[32]byte) {
-		var a = make([]byte, len(k))
-		var b = make([]byte, len(k))
-		copy(a, k[:])
-		if bytes.Equal(a, b) {
-			t.Fatalf("want non-zero value")
-		}
-	}
-	check(k.priv)
-	check(k.pub)
-}
-
 func Test_NewNonce(t *testing.T) {
 	n := NewNonce()
 
