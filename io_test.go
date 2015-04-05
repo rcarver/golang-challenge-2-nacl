@@ -64,7 +64,7 @@ func Test_SecureWriter_Write(t *testing.T) {
 
 func Test_SecureWriter_Write_TooLong(t *testing.T) {
 	key := &[32]byte{}
-	buf := [3073]byte{}
+	buf := [maxMessageSize + 1]byte{}
 
 	_, w := io.Pipe()
 	sw := SecureWriter{w, key}

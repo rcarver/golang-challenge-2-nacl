@@ -12,10 +12,11 @@ import (
 
 // maxMessageSize is the greatest number of bytes that can be transmitted
 // as a single message using SecureReader and SecureWriter.
-var maxMessageSize = uint64(3072)
+const maxMessageSize = uint64(32 * 1024)
 
 // SecureReader implements io.Reader and uses a key decrypt messages from the
-// underlying Reader.
+// underlying Reader. It expects the data to be in the form defined by
+// SecureWriter.
 type SecureReader struct {
 	r   io.Reader
 	key *[32]byte
@@ -23,36 +24,40 @@ type SecureReader struct {
 
 // Read implements io.Reader. Expects that data read from the reader has been
 // encrypted.
-func (r *SecureReader) Read(buf []byte) (int, error) {
+func (r *SecureReader) Read(out []byte) (int, error) {
 	// Read the header to find out how big the message is.
 	var size uint64
 	err := binary.Read(r.r, binary.BigEndian, &size)
 	if err != nil {
 		return 0, err
 	}
+	// TODO: this should include encryption overhead yes?
 	if size > maxMessageSize {
 		return 0, fmt.Errorf("message is too long. max: %d, got: %d", maxMessageSize, size)
 	}
 	debugf("Read: %d byte message", size)
 
+	// This buffer holds the encrypted message.
+	buf := make([]byte, size)
+
 	// Read everything into the buffer.
-	out := make([]byte, size)
-	c, err := io.ReadFull(r.r, out)
+	c, err := io.ReadFull(r.r, buf)
 	if err != nil {
 		return 0, err
 	}
-	debugf("Read: %d bytes\n%s\n", c, hex.Dump(out))
+	debugf("Read: %d bytes\n%s\n", c, hex.Dump(buf))
 
-	// Initialize the Nonce by writing from the buffer
+	// Get the Nonce from the buffer.
 	var nonce Nonce
-	if _, err := nonce.Write(out); err != nil {
+	// TODO: rename this method because it doesn't write len(buf)
+	if _, err := nonce.Write(buf); err != nil {
 		return 0, err
 	}
-
-	// The message is the rest of what was read.
-	var msg = out[len(nonce):]
-
 	debugf("Read: nonce\n%s\n", hex.Dump(nonce[:]))
+
+	// The message is the rest of the buffer after the nonce.
+	var msg = buf[len(nonce):]
+
 	debugf("Read: msg\n%s\n", hex.Dump(msg))
 
 	// Decrypt the message.
@@ -61,16 +66,17 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 	if !ok {
 		return 0, errors.New("decryption failed")
 	}
-
 	debugf("Read: result\n%s\n", hex.Dump(res))
 
-	// Copy the result into the read buffer.
-	copy(buf, res)
+	// Copy the result for output.
+	copy(out, res)
 	return len(res), nil
 }
 
 // SecureWriter implements io.Writer and encrypts data with a key before
-// writing to the underlying writer.
+// writing to the underlying writer. The encrypted data has a uint64 header
+// indicating how long the encrypted message is, followed by the encrypted
+// message. The encrypted message is a 24 byte nonce followed by the message.
 type SecureWriter struct {
 	w   io.Writer
 	key *[32]byte
@@ -87,17 +93,11 @@ func (w *SecureWriter) Write(buf []byte) (int, error) {
 	if nonce == nil {
 		return 0, errors.New("failed to create nonce")
 	}
-
-	// Create an output buffer and initialize it with the nonce.
-	out := make([]byte, len(nonce))
-	if _, err := nonce.Read(out); err != nil {
-		return 0, err
-	}
 	debugf("Write: nonce\n%s\n", hex.Dump(nonce[:]))
 
-	// Encrypt the message to the output buffer.
+	// Encrypt the message with the nonce prefix.
 	nonceBytes := [24]byte(*nonce)
-	sealed := box.SealAfterPrecomputation(out, buf, &nonceBytes, w.key)
+	sealed := box.SealAfterPrecomputation(nonceBytes[:], buf, &nonceBytes, w.key)
 
 	debugf("Write: sealed %d bytes\n%s\n", len(sealed), hex.Dump(sealed))
 
@@ -107,8 +107,10 @@ func (w *SecureWriter) Write(buf []byte) (int, error) {
 	if err := binary.Write(w.w, binary.BigEndian, header); err != nil {
 		return headerSize, err
 	}
+
 	// Write the message.
 	messageSize, err := w.w.Write(sealed)
+
 	// Return the size of the header and the message.
 	return headerSize + messageSize, err
 }
