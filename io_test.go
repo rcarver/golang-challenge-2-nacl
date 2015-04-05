@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"io"
 	"testing"
 )
@@ -10,8 +11,9 @@ func Test_SecureWriter_Read_fails(t *testing.T) {
 	r, w := io.Pipe()
 	sr := SecureReader{r, key}
 
-	in := make([]byte, 1024)
-	copy(in, []byte{'a', 'b', 'c', 'd'})
+	in := make([]byte, 100)
+	binary.BigEndian.PutUint64(in, 30)
+	copy(in[8:], []byte{'a', 'b', 'c', 'd'})
 	go w.Write(in)
 
 	var out = make([]byte, 1024)
@@ -24,7 +26,7 @@ func Test_SecureWriter_Read_fails(t *testing.T) {
 		t.Fatalf("want error")
 	}
 	if err.Error() != "decryption failed" {
-		t.Fatalf("want decryption error")
+		t.Fatalf("want decryption error, got %s", err)
 	}
 }
 
@@ -46,8 +48,17 @@ func Test_SecureWriter_Write(t *testing.T) {
 		t.Fatalf("Want bytes written, got %d", c)
 	}
 
-	if string(out[:4]) == "abcd" {
-		t.Fatalf("want encrypted, got %s", out)
+	headerSize := uint64(8)
+	messageSize := binary.BigEndian.Uint64(out)
+
+	if want := messageSize + headerSize; want != uint64(c) {
+		t.Fatalf("want the right size result, want %d, got %d", want, c)
+	}
+	if want := out[messageSize+headerSize-1]; want == 0 {
+		t.Fatalf("expect non-zero at the end of the data, got %#v", want)
+	}
+	if want := out[messageSize+headerSize]; want != 0 {
+		t.Fatalf("expect zero past the data, got %#v", want)
 	}
 }
 
