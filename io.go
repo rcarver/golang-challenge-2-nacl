@@ -48,9 +48,8 @@ func (r *SecureReader) Read(out []byte) (int, error) {
 	debugf("Read: %d bytes\n%s\n", c, hex.Dump(buf))
 
 	// Get the Nonce from the buffer.
-	var nonce Nonce
-	// TODO: rename this method because it doesn't write len(buf)
-	if _, err := nonce.Write(buf); err != nil {
+	nonce, err := NonceFrom(buf)
+	if err != nil {
 		return 0, err
 	}
 	debugf("Read: nonce\n%s\n", hex.Dump(nonce[:]))
@@ -61,7 +60,7 @@ func (r *SecureReader) Read(out []byte) (int, error) {
 	debugf("Read: msg\n%s\n", hex.Dump(msg))
 
 	// Decrypt the message.
-	nonceBytes := [24]byte(nonce)
+	nonceBytes := [24]byte(*nonce)
 	res, ok := box.OpenAfterPrecomputation(nil, msg, &nonceBytes, r.key)
 	if !ok {
 		return 0, errors.New("decryption failed")

@@ -87,20 +87,14 @@ func NewNonce() *Nonce {
 	return &nonce
 }
 
-// Read puts the nonce value into the buffer.
-func (n *Nonce) Read(buf []byte) (int, error) {
-	c := copy(buf, n[:])
-	if c < nonceSize {
-		return c, fmt.Errorf("did not read the entire value (read %d)", c)
-	}
-	return c, nil
-}
-
-// Write sets the nonce value by reading the buffer.
-func (n *Nonce) Write(buf []byte) (int, error) {
+// NonceFrom returns a new Nonce initialized by reading from the buffer.
+// If the buffer is bigger than 24 bytes, only the first 24 bytes are read.
+// An error is returned if fewer than 24 bytes are read.
+func NonceFrom(buf []byte) (*Nonce, error) {
+	var n Nonce
 	c := copy(n[:], buf)
 	if c < nonceSize {
-		return c, fmt.Errorf("did not write the entire value (wrote %d)", c)
+		return nil, fmt.Errorf("did not write the entire value (wrote %d)", c)
 	}
-	return c, nil
+	return &n, nil
 }
