@@ -52,9 +52,9 @@ func (s *Server) handshake(conn io.ReadWriter, ks *KeySet) error {
 }
 
 // handle takes care of client/server behavior after the handshake.
-func (s *Server) handle(conn io.ReadWriter, keySet *KeySet) error {
+func (s *Server) handle(conn io.ReadWriter, ks *KeySet) error {
 	// Setup encrypted reader/writer to communicate with the client.
-	sharedKey := keySet.PeersSharedKey()
+	sharedKey := ks.PeersSharedKey()
 	sr := &SecureReader{conn, sharedKey}
 	sw := &SecureWriter{conn, sharedKey}
 
