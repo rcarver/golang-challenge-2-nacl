@@ -13,12 +13,11 @@ import (
 // as a single message using SecureReader and SecureWriter.
 var maxMessageSize = 3072
 
-// SecureReader implements io.Reader and uses a private/public keypair to
-// decrypt messages from the underlying Reader.
+// SecureReader implements io.Reader and uses a key decrypt messages from the
+// underlying Reader.
 type SecureReader struct {
-	r    io.Reader
-	pub  *[32]byte
-	priv *[32]byte
+	r   io.Reader
+	key *[32]byte
 }
 
 // Read implements io.Reader. Expects that data read from the reader has been
@@ -48,7 +47,7 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 
 	// Decrypt the message.
 	nonceBytes := [24]byte(nonce)
-	res, ok := box.Open(nil, msg, &nonceBytes, r.pub, r.priv)
+	res, ok := box.OpenAfterPrecomputation(nil, msg, &nonceBytes, r.key)
 	if !ok {
 		return 0, errors.New("decryption failed")
 	}
@@ -60,12 +59,11 @@ func (r *SecureReader) Read(buf []byte) (int, error) {
 	return len(res), nil
 }
 
-// SecureWriter implements io.Writer and encrypts with a private/public keypair
-// before writing to the underlying writer.
+// SecureWriter implements io.Writer and encrypts data with a key before
+// writing to the underlying writer.
 type SecureWriter struct {
-	w    io.Writer
-	pub  *[32]byte
-	priv *[32]byte
+	w   io.Writer
+	key *[32]byte
 }
 
 // Write implements io.Writer.
@@ -90,7 +88,7 @@ func (w *SecureWriter) Write(buf []byte) (int, error) {
 
 	// Encrypt the message to the output buffer.
 	nonceBytes := [24]byte(*nonce)
-	sealed := box.Seal(out, buf, &nonceBytes, w.pub, w.priv)
+	sealed := box.SealAfterPrecomputation(out, buf, &nonceBytes, w.key)
 
 	debugf("Write: sealed %d bytes\n%s\n", len(sealed), hex.Dump(sealed))
 

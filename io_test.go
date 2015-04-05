@@ -6,10 +6,9 @@ import (
 )
 
 func Test_SecureWriter_Read_fails(t *testing.T) {
-	pub, priv := &[32]byte{}, &[32]byte{}
-
+	key := &[32]byte{}
 	r, w := io.Pipe()
-	sr := SecureReader{r, pub, priv}
+	sr := SecureReader{r, key}
 
 	in := make([]byte, 1024)
 	copy(in, []byte{'a', 'b', 'c', 'd'})
@@ -30,11 +29,11 @@ func Test_SecureWriter_Read_fails(t *testing.T) {
 }
 
 func Test_SecureWriter_Write(t *testing.T) {
-	pub, priv := &[32]byte{}, &[32]byte{}
+	key := &[32]byte{}
 	buf := [4]byte{'a', 'b', 'c', 'd'}
 
 	r, w := io.Pipe()
-	sw := SecureWriter{w, pub, priv}
+	sw := SecureWriter{w, key}
 
 	var out = make([]byte, 1024)
 	go io.ReadFull(r, out)
@@ -53,11 +52,11 @@ func Test_SecureWriter_Write(t *testing.T) {
 }
 
 func Test_SecureWriter_Write_TooLong(t *testing.T) {
-	pub, priv := &[32]byte{}, &[32]byte{}
+	key := &[32]byte{}
 	buf := [3073]byte{}
 
 	_, w := io.Pipe()
-	sw := SecureWriter{w, pub, priv}
+	sw := SecureWriter{w, key}
 
 	c, err := sw.Write(buf[:])
 	if err == nil {
@@ -70,12 +69,12 @@ func Test_SecureWriter_Write_TooLong(t *testing.T) {
 }
 
 func Test_Secure_ReadWrite(t *testing.T) {
-	pub, priv := &[32]byte{}, &[32]byte{}
+	key := &[32]byte{}
 	buf := [4]byte{'a', 'b', 'c', 'd'}
 
 	r, w := io.Pipe()
-	sr := SecureReader{r, pub, priv}
-	sw := SecureWriter{w, pub, priv}
+	sr := SecureReader{r, key}
+	sw := SecureWriter{w, key}
 
 	var out = make([]byte, 1024)
 	var readBytes = -1

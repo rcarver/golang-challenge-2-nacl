@@ -22,12 +22,14 @@ func debugf(msg string, v ...interface{}) {
 
 // NewSecureReader instantiates a new SecureReader
 func NewSecureReader(r io.Reader, priv, pub *[32]byte) io.Reader {
-	return &SecureReader{r: r, pub: pub, priv: priv}
+	key := ComputeSharedKey(pub, priv)
+	return &SecureReader{r, key}
 }
 
 // NewSecureWriter instantiates a new SecureWriter
 func NewSecureWriter(w io.Writer, priv, pub *[32]byte) io.Writer {
-	return &SecureWriter{w: w, pub: pub, priv: priv}
+	key := ComputeSharedKey(pub, priv)
+	return &SecureWriter{w, key}
 }
 
 // Dial generates a private/public key pair,

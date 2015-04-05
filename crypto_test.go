@@ -2,9 +2,22 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"io"
 	"testing"
+
+	"golang.org/x/crypto/nacl/box"
 )
+
+func Test_ComputeSharedKey(t *testing.T) {
+	aPub, aPriv, _ := box.GenerateKey(rand.Reader)
+	bPub, bPriv, _ := box.GenerateKey(rand.Reader)
+	aShare := ComputeSharedKey(bPub, aPriv)
+	bShare := ComputeSharedKey(aPub, bPriv)
+	if !bytes.Equal(aShare[:], bShare[:]) {
+		t.Fatalf("want equal shared keys\na: %v\nb: %v", aShare, bShare)
+	}
+}
 
 func Test_NewKeySet(t *testing.T) {
 	k := NewKeySet()
@@ -72,18 +85,16 @@ func Test_KeySet_Exchange(t *testing.T) {
 	}
 }
 
-func Test_KeySet_PeersKeyPair(t *testing.T) {
+func Test_KeySet_PeersSharedKey(t *testing.T) {
 	ks := &KeySet{
 		&[32]byte{'a'},
 		&[32]byte{'b'},
 		&[32]byte{'c'},
 	}
-	pub, priv := ks.PeersKeyPair()
-	if want := []byte("c"); !bytes.Equal(want, pub[:1]) {
-		t.Fatalf("pub want %s, got %s", want, pub[:1])
-	}
-	if want := []byte("b"); !bytes.Equal(want, priv[:1]) {
-		t.Fatalf("priv want %s, got %s", want, priv[:1])
+	want := ComputeSharedKey(ks.peersPub, ks.priv)
+	got := ks.PeersSharedKey()
+	if !bytes.Equal(want[:], got[:]) {
+		t.Fatalf("shared want %v, got %v", want, got)
 	}
 }
 

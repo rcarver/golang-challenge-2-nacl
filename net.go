@@ -53,10 +53,10 @@ func (s *Server) handshake(conn io.ReadWriter, ks *KeySet) error {
 
 // handle takes care of client/server behavior after the handshake.
 func (s *Server) handle(conn io.ReadWriter, keySet *KeySet) error {
-
-	pub, priv := keySet.PeersKeyPair()
-	sr := NewSecureReader(conn, priv, pub)
-	sw := NewSecureWriter(conn, priv, pub)
+	// Setup encrypted reader/writer to communicate with the client.
+	sharedKey := keySet.PeersSharedKey()
+	sr := &SecureReader{conn, sharedKey}
+	sw := &SecureWriter{conn, sharedKey}
 
 	// Read decrypted data from the client.
 	s.debug("Reading...\n")
@@ -106,9 +106,9 @@ func (c *Client) Handshake(conn io.ReadWriter) error {
 // Requires that the peer's public key has been provided, probably by getting
 // it via Handshake.
 func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
-	pub, priv := c.keySet.PeersKeyPair()
-	r := NewSecureReader(conn, priv, pub)
-	w := NewSecureWriter(conn, priv, pub)
+	sharedKey := c.keySet.PeersSharedKey()
+	r := &SecureReader{conn, sharedKey}
+	w := &SecureWriter{conn, sharedKey}
 	return struct {
 		io.Reader
 		io.Writer
