@@ -10,15 +10,6 @@ import (
 
 const keySize = 32
 
-// ComputeSharedKey calculates the key that is shared between the public and
-// private keys given. Internally, this uses box.Precompute, performing a
-// Diffie-Hellman key exchange.
-func ComputeSharedKey(pub, priv *[keySize]byte) *[keySize]byte {
-	var key = new([keySize]byte)
-	box.Precompute(key, pub, priv)
-	return key
-}
-
 // KeySet manages all of the keys involved in public key cryptography and key
 // exchange.
 type KeySet struct {
@@ -69,6 +60,15 @@ func (ks *KeySet) Exchange(rw io.ReadWriter) error {
 // commonly by calling Exchange.
 func (ks *KeySet) PeersSharedKey() *[keySize]byte {
 	return ComputeSharedKey(ks.peersPub, ks.priv)
+}
+
+// ComputeSharedKey calculates the key that is shared between the public and
+// private keys given. Internally, this uses box.Precompute, performing a
+// Diffie-Hellman key exchange.
+func ComputeSharedKey(pub, priv *[keySize]byte) *[keySize]byte {
+	var key = new([keySize]byte)
+	box.Precompute(key, pub, priv)
+	return key
 }
 
 const nonceSize = 24
