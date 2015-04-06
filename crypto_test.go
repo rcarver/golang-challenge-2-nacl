@@ -26,29 +26,10 @@ func Test_NewKeyPair(t *testing.T) {
 	check(k.pub)
 }
 
-func Test_KeyPair_Copy(t *testing.T) {
-	a := &KeyPair{
-		&[32]byte{'a'},
-		&[32]byte{'b'},
-		&[32]byte{'c'},
-	}
-	b := a.Copy()
-	if !bytes.Equal(a.pub[:], b.pub[:]) {
-		t.Fatalf("pub want %#v, got %#v", a.pub, b.pub)
-	}
-	if !bytes.Equal(a.priv[:], b.priv[:]) {
-		t.Fatalf("priv want %#v got %#v", a.priv, b.priv)
-	}
-	if b.peersPub != nil {
-		t.Fatalf("peersPub want nil, got %#v", b.peersPub)
-	}
-}
-
 func Test_KeyPair_Exchange(t *testing.T) {
 	kp := &KeyPair{
 		&[32]byte{'a'},
 		&[32]byte{'b'},
-		nil,
 	}
 	peersPub := [32]byte{'c'}
 
@@ -63,36 +44,38 @@ func Test_KeyPair_Exchange(t *testing.T) {
 	// Write the peersPub to the buffer.
 	r.Write(peersPub[:])
 
-	err := kp.Exchange(rw)
+	kp2, err := kp.Exchange(rw)
 	if err != nil {
 		t.Fatalf("want no error in Exchange")
 	}
 	if !bytes.Equal(kp.pub[:], w.Bytes()) {
-		t.Fatalf("send key: want %#v, got %#v", kp.pub, w.Bytes())
+		t.Fatalf("send pub key: want %#v, got %#v", kp.pub, w.Bytes())
 	}
-	if !bytes.Equal(peersPub[:], kp.peersPub[:]) {
-		t.Fatalf("recv key: want %#v, got %#v", peersPub, kp.peersPub)
+	if !bytes.Equal(kp2.pub[:], kp2.pub[:]) {
+		t.Fatalf("recv pub key: want %#v, got %#v", kp2.pub, kp2.pub)
+	}
+	if !bytes.Equal(kp2.priv[:], kp2.priv[:]) {
+		t.Fatalf("recv priv key: want %#v, got %#v", kp2.priv, kp2.priv)
 	}
 }
 
-func Test_KeyPair_PeersSharedKey(t *testing.T) {
+func Test_KeyPair_SharedKey(t *testing.T) {
 	kp := &KeyPair{
 		&[32]byte{'a'},
 		&[32]byte{'b'},
-		&[32]byte{'c'},
 	}
-	want := ComputeSharedKey(kp.peersPub, kp.priv)
-	got := kp.PeersSharedKey()
+	want := SharedKey(kp.pub, kp.priv)
+	got := kp.SharedKey()
 	if !bytes.Equal(want[:], got[:]) {
 		t.Fatalf("shared want %v, got %v", want, got)
 	}
 }
 
-func Test_ComputeSharedKey(t *testing.T) {
+func Test_SharedKey(t *testing.T) {
 	aPub, aPriv, _ := box.GenerateKey(rand.Reader)
 	bPub, bPriv, _ := box.GenerateKey(rand.Reader)
-	aShare := ComputeSharedKey(bPub, aPriv)
-	bShare := ComputeSharedKey(aPub, bPriv)
+	aShare := SharedKey(bPub, aPriv)
+	bShare := SharedKey(aPub, bPriv)
 	if !bytes.Equal(aShare[:], bShare[:]) {
 		t.Fatalf("want equal shared keys\na: %v\nb: %v", aShare, bShare)
 	}

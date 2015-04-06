@@ -10,62 +10,55 @@ import (
 
 const keySize = 32
 
-// KeyPair manages all of the keys involved in public key cryptography and key
-// exchange.
+// KeyPair holds a public/private key pair, and facilitiates performing
+// a Diffie-Hellman key exchange.
 type KeyPair struct {
-	pub      *[keySize]byte
-	priv     *[keySize]byte
-	peersPub *[keySize]byte
+	pub  *[keySize]byte
+	priv *[keySize]byte
 }
 
-// NewKeyPair returns a new KeyPair initialized a public/private key pair. The
-// peer's public key is nil.
+// NewKeyPair returns a new KeyPair initialized with public and private keys.
 func NewKeyPair() *KeyPair {
 	pub, priv, err := box.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil
 	}
-	return &KeyPair{pub, priv, nil}
-}
-
-// Copy returns a new KeyPair with the public and private key, and no peers
-// public key.
-func (ks *KeyPair) Copy() *KeyPair {
-	return &KeyPair{ks.pub, ks.priv, nil}
+	return &KeyPair{pub, priv}
 }
 
 // Exchange performs a key exchange over the ReadWriter. It first writes the
-// public key to the Writer, then sets the peer's public key by reading from
-// the Reader.
-func (ks *KeyPair) Exchange(rw io.ReadWriter) error {
+// public key to the Writer, then gets the peer's public key by reading from
+// the Reader. A new KeyPair is returned containing the peer's public key and
+// this private key.
+func (kp *KeyPair) Exchange(rw io.ReadWriter) (*KeyPair, error) {
+	newPair := &KeyPair{pub: &[keySize]byte{}, priv: kp.priv}
 
 	// Send public key.
-	debugf("Sending public key %v\n", ks.pub)
-	if _, err := rw.Write(ks.pub[:]); err != nil {
-		return err
+	debugf("Sending public key %v\n", kp.pub)
+	if _, err := rw.Write(kp.pub[:]); err != nil {
+		return nil, err
 	}
 
 	// Receive public key from the client.
-	ks.peersPub = &[keySize]byte{}
-	if _, err := rw.Read(ks.peersPub[:]); err != nil {
-		return err
+	if _, err := rw.Read(newPair.pub[:]); err != nil {
+		return nil, err
 	}
-	debugf("Received peer's public key: %v\n", ks.peersPub)
+	debugf("Received peer's public key: %v\n", newPair.pub)
 
-	return nil
+	return newPair, nil
 }
 
-// PeersSharedKey returns the shared key computed with the peer's public key
-// and the private key. Expects that the peer's public key is set, most
-// commonly by calling Exchange.
-func (ks *KeyPair) PeersSharedKey() *[keySize]byte {
-	return ComputeSharedKey(ks.peersPub, ks.priv)
+// SharedKey returns the shared key computed with the public key and the
+// private key. By using Exchange, then calling SharedKey on the resulting
+// KeyPair you get a key that can be used to communicate with the other side.
+func (kp *KeyPair) SharedKey() *[keySize]byte {
+	return SharedKey(kp.pub, kp.priv)
 }
 
-// ComputeSharedKey calculates the key that is shared between the public and
+// SharedKey calculates the key that is shared between the public and
 // private keys given. Internally, this uses box.Precompute, performing a
 // Diffie-Hellman key exchange.
-func ComputeSharedKey(pub, priv *[keySize]byte) *[keySize]byte {
+func SharedKey(pub, priv *[keySize]byte) *[keySize]byte {
 	var key = new([keySize]byte)
 	box.Precompute(key, pub, priv)
 	return key
