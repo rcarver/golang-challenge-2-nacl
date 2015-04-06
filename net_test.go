@@ -6,16 +6,16 @@ import (
 	"testing"
 )
 
-func newFakeSetSet(pub, priv, peersPub string) *KeySet {
+func newFakeKeyPair(pub, priv, peersPub string) *KeyPair {
 	a, b, c := [32]byte{}, [32]byte{}, [32]byte{}
 	copy(a[:], pub)
 	copy(b[:], priv)
 	copy(c[:], peersPub)
-	return &KeySet{&a, &b, &c}
+	return &KeyPair{&a, &b, &c}
 }
 
 func Test_Server_handshake(t *testing.T) {
-	ks := newFakeSetSet("a", "b", "")
+	ks := newFakeKeyPair("a", "b", "")
 	s := Server{ks}
 
 	r := bytes.NewBuffer([]byte{})
@@ -47,7 +47,7 @@ func Test_Server_handshake(t *testing.T) {
 }
 
 func Test_Server_handle(t *testing.T) {
-	ks := newFakeSetSet("", "b", "a")
+	ks := newFakeKeyPair("", "b", "a")
 	s := Server{ks}
 	r, w := io.Pipe()
 
@@ -84,7 +84,7 @@ func Test_Server_handle(t *testing.T) {
 }
 
 func Test_Client_Handshake(t *testing.T) {
-	ks := newFakeSetSet("a", "b", "")
+	ks := newFakeKeyPair("a", "b", "")
 	c := Client{ks}
 	r := bytes.NewBuffer([]byte{})
 	w := bytes.NewBuffer([]byte{})
@@ -114,7 +114,7 @@ func Test_Client_Handshake(t *testing.T) {
 }
 
 func Test_Client_SecureConn(t *testing.T) {
-	ks := newFakeSetSet("", "b", "a")
+	ks := newFakeKeyPair("", "b", "a")
 	c := Client{ks}
 	r, w := io.Pipe()
 

@@ -10,34 +10,34 @@ import (
 
 const keySize = 32
 
-// KeySet manages all of the keys involved in public key cryptography and key
+// KeyPair manages all of the keys involved in public key cryptography and key
 // exchange.
-type KeySet struct {
+type KeyPair struct {
 	pub      *[keySize]byte
 	priv     *[keySize]byte
 	peersPub *[keySize]byte
 }
 
-// NewKeySet returns a new KeySet initialized a public/private key pair. The
+// NewKeyPair returns a new KeyPair initialized a public/private key pair. The
 // peer's public key is nil.
-func NewKeySet() *KeySet {
+func NewKeyPair() *KeyPair {
 	pub, priv, err := box.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil
 	}
-	return &KeySet{pub, priv, nil}
+	return &KeyPair{pub, priv, nil}
 }
 
-// Copy returns a new KeySet with the public and private key, and no peers
+// Copy returns a new KeyPair with the public and private key, and no peers
 // public key.
-func (ks *KeySet) Copy() *KeySet {
-	return &KeySet{ks.pub, ks.priv, nil}
+func (ks *KeyPair) Copy() *KeyPair {
+	return &KeyPair{ks.pub, ks.priv, nil}
 }
 
 // Exchange performs a key exchange over the ReadWriter. It first writes the
 // public key to the Writer, then sets the peer's public key by reading from
 // the Reader.
-func (ks *KeySet) Exchange(rw io.ReadWriter) error {
+func (ks *KeyPair) Exchange(rw io.ReadWriter) error {
 
 	// Send public key.
 	debugf("Sending public key %v\n", ks.pub)
@@ -58,7 +58,7 @@ func (ks *KeySet) Exchange(rw io.ReadWriter) error {
 // PeersSharedKey returns the shared key computed with the peer's public key
 // and the private key. Expects that the peer's public key is set, most
 // commonly by calling Exchange.
-func (ks *KeySet) PeersSharedKey() *[keySize]byte {
+func (ks *KeyPair) PeersSharedKey() *[keySize]byte {
 	return ComputeSharedKey(ks.peersPub, ks.priv)
 }
 

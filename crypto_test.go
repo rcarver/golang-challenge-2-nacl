@@ -9,8 +9,8 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
-func Test_NewKeySet(t *testing.T) {
-	k := NewKeySet()
+func Test_NewKeyPair(t *testing.T) {
+	k := NewKeyPair()
 	if k == nil {
 		t.Fatalf("want a key, got nil")
 	}
@@ -26,8 +26,8 @@ func Test_NewKeySet(t *testing.T) {
 	check(k.pub)
 }
 
-func Test_KeySet_Copy(t *testing.T) {
-	a := &KeySet{
+func Test_KeyPair_Copy(t *testing.T) {
+	a := &KeyPair{
 		&[32]byte{'a'},
 		&[32]byte{'b'},
 		&[32]byte{'c'},
@@ -44,8 +44,8 @@ func Test_KeySet_Copy(t *testing.T) {
 	}
 }
 
-func Test_KeySet_Exchange(t *testing.T) {
-	ks := &KeySet{
+func Test_KeyPair_Exchange(t *testing.T) {
+	kp := &KeyPair{
 		&[32]byte{'a'},
 		&[32]byte{'b'},
 		nil,
@@ -63,26 +63,26 @@ func Test_KeySet_Exchange(t *testing.T) {
 	// Write the peersPub to the buffer.
 	r.Write(peersPub[:])
 
-	err := ks.Exchange(rw)
+	err := kp.Exchange(rw)
 	if err != nil {
 		t.Fatalf("want no error in Exchange")
 	}
-	if !bytes.Equal(ks.pub[:], w.Bytes()) {
-		t.Fatalf("send key: want %#v, got %#v", ks.pub, w.Bytes())
+	if !bytes.Equal(kp.pub[:], w.Bytes()) {
+		t.Fatalf("send key: want %#v, got %#v", kp.pub, w.Bytes())
 	}
-	if !bytes.Equal(peersPub[:], ks.peersPub[:]) {
-		t.Fatalf("recv key: want %#v, got %#v", peersPub, ks.peersPub)
+	if !bytes.Equal(peersPub[:], kp.peersPub[:]) {
+		t.Fatalf("recv key: want %#v, got %#v", peersPub, kp.peersPub)
 	}
 }
 
-func Test_KeySet_PeersSharedKey(t *testing.T) {
-	ks := &KeySet{
+func Test_KeyPair_PeersSharedKey(t *testing.T) {
+	kp := &KeyPair{
 		&[32]byte{'a'},
 		&[32]byte{'b'},
 		&[32]byte{'c'},
 	}
-	want := ComputeSharedKey(ks.peersPub, ks.priv)
-	got := ks.PeersSharedKey()
+	want := ComputeSharedKey(kp.peersPub, kp.priv)
+	got := kp.PeersSharedKey()
 	if !bytes.Equal(want[:], got[:]) {
 		t.Fatalf("shared want %v, got %v", want, got)
 	}

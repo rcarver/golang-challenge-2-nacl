@@ -8,13 +8,13 @@ import (
 
 // Server is the secure echo server.
 type Server struct {
-	keySet *KeySet
+	keyPair *KeyPair
 }
 
 // NewServer initializes a new Server with its own keys. The server will
 // perform a handshake with each client to exchange public keys.
-func NewServer(ks *KeySet) *Server {
-	return &Server{ks}
+func NewServer(kp *KeyPair) *Server {
+	return &Server{kp}
 }
 
 // Serve starts an infinite loop waiting for client connections.
@@ -30,12 +30,12 @@ func (s *Server) Serve(l net.Listener) error {
 			// Each client gets its own set of key set to handshake
 			// with because we need to manage the pub/priv keypair
 			// independently for each client.
-			ks := s.keySet.Copy()
-			err := s.handshake(conn, ks)
+			kp := s.keyPair.Copy()
+			err := s.handshake(conn, kp)
 			if err != nil {
 				s.debug("Error performing handshake: %s", err)
 			}
-			if err := s.handle(conn, ks); err != nil {
+			if err := s.handle(conn, kp); err != nil {
 				s.debug("Error handling client: %s", err)
 			}
 		}(conn)
@@ -43,18 +43,18 @@ func (s *Server) Serve(l net.Listener) error {
 }
 
 // handshake performs the key exchange with the client.
-func (s *Server) handshake(conn io.ReadWriter, ks *KeySet) error {
+func (s *Server) handshake(conn io.ReadWriter, kp *KeyPair) error {
 	s.debug("Performing key exchange...\n")
-	if err := ks.Exchange(conn); err != nil {
+	if err := kp.Exchange(conn); err != nil {
 		return err
 	}
 	return nil
 }
 
 // handle takes care of client/server behavior after the handshake.
-func (s *Server) handle(conn io.ReadWriter, ks *KeySet) error {
+func (s *Server) handle(conn io.ReadWriter, kp *KeyPair) error {
 	// Setup encrypted reader/writer to communicate with the client.
-	sharedKey := ks.PeersSharedKey()
+	sharedKey := kp.PeersSharedKey()
 	sr := &SecureReader{conn, sharedKey}
 	sw := &SecureWriter{conn, sharedKey}
 
@@ -84,19 +84,19 @@ func (s *Server) debug(str string, v ...interface{}) {
 
 // Client is the secure echo client.
 type Client struct {
-	keySet *KeySet
+	keyPair *KeyPair
 }
 
 // NewClient initializes a Client with its own keys. The client will perform a
 // handshake with the server to exchange public keys.
-func NewClient(ks *KeySet) *Client {
-	return &Client{ks}
+func NewClient(kp *KeyPair) *Client {
+	return &Client{kp}
 }
 
 // Handshake performs the public key exchange with the server.
 func (c *Client) Handshake(conn io.ReadWriter) error {
 	c.debug("Performing key exchange...\n")
-	if err := c.keySet.Exchange(conn); err != nil {
+	if err := c.keyPair.Exchange(conn); err != nil {
 		return err
 	}
 	return nil
@@ -106,7 +106,7 @@ func (c *Client) Handshake(conn io.ReadWriter) error {
 // Requires that the peer's public key has been provided, probably by getting
 // it via Handshake.
 func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
-	sharedKey := c.keySet.PeersSharedKey()
+	sharedKey := c.keyPair.PeersSharedKey()
 	r := &SecureReader{conn, sharedKey}
 	w := &SecureWriter{conn, sharedKey}
 	return struct {
