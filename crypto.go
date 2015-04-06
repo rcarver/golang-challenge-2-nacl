@@ -73,8 +73,7 @@ func (ks *KeySet) PeersSharedKey() *[keySize]byte {
 
 const nonceSize = 24
 
-// Nonce is the unique input for each new encryption. This type implements
-// io.Reader and io.Writer to easily move the byte value around.
+// Nonce is the unique input for each new encryption.
 type Nonce [nonceSize]byte
 
 // NewNonce returns a new Nonce initialized with a random value.
