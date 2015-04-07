@@ -22,13 +22,13 @@ func debugf(msg string, v ...interface{}) {
 
 // NewSecureReader instantiates a new SecureReader
 func NewSecureReader(r io.Reader, priv, pub *[32]byte) io.Reader {
-	key := SharedKey(pub, priv)
+	key := CommonKey(pub, priv)
 	return &SecureReader{r, key}
 }
 
 // NewSecureWriter instantiates a new SecureWriter
 func NewSecureWriter(w io.Writer, priv, pub *[32]byte) io.Writer {
-	key := SharedKey(pub, priv)
+	key := CommonKey(pub, priv)
 	return &SecureWriter{w, key}
 }
 

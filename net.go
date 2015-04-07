@@ -27,11 +27,11 @@ func (s *Server) Serve(l net.Listener) error {
 		}
 		go func(conn net.Conn) {
 			defer conn.Close()
-			sharedKey, err := s.handshake(conn)
+			commonKey, err := s.handshake(conn)
 			if err != nil {
 				s.debug("Error performing handshake: %s", err)
 			}
-			if err := s.handle(conn, sharedKey); err != nil {
+			if err := s.handle(conn, commonKey); err != nil {
 				s.debug("Error handling client: %s", err)
 			}
 		}(conn)
@@ -46,15 +46,15 @@ func (s *Server) handshake(conn io.ReadWriter) (*[keySize]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	sharedKey := kp.SharedKey()
-	return sharedKey, nil
+	commonKey := kp.CommonKey()
+	return commonKey, nil
 }
 
 // handle takes care of client/server behavior after the handshake.
-func (s *Server) handle(conn io.ReadWriter, sharedKey *[keySize]byte) error {
+func (s *Server) handle(conn io.ReadWriter, commonKey *[keySize]byte) error {
 	// Setup encrypted reader/writer to communicate with the client.
-	sr := &SecureReader{conn, sharedKey}
-	sw := &SecureWriter{conn, sharedKey}
+	sr := &SecureReader{conn, commonKey}
+	sw := &SecureWriter{conn, commonKey}
 
 	// Read decrypted data from the client.
 	s.debug("Reading...\n")
@@ -83,7 +83,7 @@ func (s *Server) debug(str string, v ...interface{}) {
 // Client is the secure echo client.
 type Client struct {
 	keyPair   *KeyPair
-	sharedKey *[32]byte
+	commonKey *[32]byte
 }
 
 // NewClient initializes a Client with its own keys. The client will perform a
@@ -99,7 +99,7 @@ func (c *Client) Handshake(conn io.ReadWriter) error {
 	if err != nil {
 		return err
 	}
-	c.sharedKey = kp.SharedKey()
+	c.commonKey = kp.CommonKey()
 	return nil
 }
 
@@ -107,8 +107,8 @@ func (c *Client) Handshake(conn io.ReadWriter) error {
 // Requires that the shared key has been provided, probably by getting it via
 // Handshake.
 func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
-	r := &SecureReader{conn, c.sharedKey}
-	w := &SecureWriter{conn, c.sharedKey}
+	r := &SecureReader{conn, c.commonKey}
+	w := &SecureWriter{conn, c.commonKey}
 	return struct {
 		io.Reader
 		io.Writer

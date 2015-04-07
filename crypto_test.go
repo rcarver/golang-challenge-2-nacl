@@ -59,19 +59,19 @@ func Test_KeyPair_Exchange(t *testing.T) {
 	}
 }
 
-func Test_KeyPair_SharedKey(t *testing.T) {
+func Test_KeyPair_CommonKey(t *testing.T) {
 	kp := &KeyPair{
 		&[32]byte{'a'},
 		&[32]byte{'b'},
 	}
-	want := SharedKey(kp.pub, kp.priv)
-	got := kp.SharedKey()
+	want := CommonKey(kp.pub, kp.priv)
+	got := kp.CommonKey()
 	if !bytes.Equal(want[:], got[:]) {
 		t.Fatalf("shared want %v, got %v", want, got)
 	}
 }
 
-func Test_KeyPairDiffieHellmanSharedKey(t *testing.T) {
+func Test_KeyPairDiffieHellmanCommonKey(t *testing.T) {
 	kp1 := NewKeyPair()
 	kp2 := NewKeyPair()
 	var shared1 *[32]byte
@@ -79,12 +79,12 @@ func Test_KeyPairDiffieHellmanSharedKey(t *testing.T) {
 	r, w := io.Pipe()
 	go func() {
 		x, _ := kp2.recv(r)
-		shared2 = x.SharedKey()
+		shared2 = x.CommonKey()
 	}()
 	kp1.send(w)
 	go func() {
 		x, _ := kp1.recv(r)
-		shared1 = x.SharedKey()
+		shared1 = x.CommonKey()
 	}()
 	kp2.send(w)
 	if shared1 == nil || shared2 == nil {
@@ -95,11 +95,11 @@ func Test_KeyPairDiffieHellmanSharedKey(t *testing.T) {
 	}
 }
 
-func Test_SharedKey(t *testing.T) {
+func Test_CommonKey(t *testing.T) {
 	aPub, aPriv, _ := box.GenerateKey(rand.Reader)
 	bPub, bPriv, _ := box.GenerateKey(rand.Reader)
-	aShare := SharedKey(bPub, aPriv)
-	bShare := SharedKey(aPub, bPriv)
+	aShare := CommonKey(bPub, aPriv)
+	bShare := CommonKey(aPub, bPriv)
 	if !bytes.Equal(aShare[:], bShare[:]) {
 		t.Fatalf("want equal shared keys\na: %v\nb: %v", aShare, bShare)
 	}

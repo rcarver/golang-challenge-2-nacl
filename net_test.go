@@ -30,7 +30,7 @@ func Test_Server_handshake(t *testing.T) {
 		io.Writer
 	}{r, w}
 
-	sharedKey, err := s.handshake(rw)
+	commonKey, err := s.handshake(rw)
 	if err != nil {
 		t.Fatalf("want no error in handshake")
 	}
@@ -39,8 +39,8 @@ func Test_Server_handshake(t *testing.T) {
 	if !bytes.Equal(kp.pub[:], w.Bytes()) {
 		t.Fatalf("send key: want %#v, got %#v", kp.pub, w.Bytes())
 	}
-	// Server received sharedKey
-	if sharedKey == nil {
+	// Server received commonKey
+	if commonKey == nil {
 		t.Fatalf("want shared key, got nil")
 	}
 }
@@ -72,8 +72,8 @@ func Test_Server_handle(t *testing.T) {
 		io.Writer
 	}{r, w}
 
-	sharedKey := kp.SharedKey()
-	if err := s.handle(rw, sharedKey); err != nil {
+	commonKey := kp.CommonKey()
+	if err := s.handle(rw, commonKey); err != nil {
 		t.Fatalf("want no error in handle")
 	}
 
@@ -108,15 +108,15 @@ func Test_Client_Handshake(t *testing.T) {
 		t.Fatalf("send key: want %#v, got %#v", kp.pub, w.Bytes())
 	}
 	// Client received server's shared key.
-	if c.sharedKey == nil {
+	if c.commonKey == nil {
 		t.Fatalf("want shared key, got nil")
 	}
 }
 
 func Test_Client_SecureConn(t *testing.T) {
 	kp := newFakeKeyPair("a", "b")
-	sharedKey := kp.SharedKey()
-	c := Client{kp, sharedKey}
+	commonKey := kp.CommonKey()
+	c := Client{kp, commonKey}
 	r, w := io.Pipe()
 
 	// Fake a io.ReadWriteCloser

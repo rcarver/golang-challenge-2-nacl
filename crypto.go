@@ -56,17 +56,17 @@ func (kp *KeyPair) recv(r io.Reader) (*KeyPair, error) {
 	return newPair, nil
 }
 
-// SharedKey returns the shared key computed with the public key and the
-// private key. By using Exchange, then calling SharedKey on the resulting
+// CommonKey returns the shared key computed with the public key and the
+// private key. By using Exchange, then calling CommonKey on the resulting
 // KeyPair you get a key that can be used to communicate with the other side.
-func (kp *KeyPair) SharedKey() *[keySize]byte {
-	return SharedKey(kp.pub, kp.priv)
+func (kp *KeyPair) CommonKey() *[keySize]byte {
+	return CommonKey(kp.pub, kp.priv)
 }
 
-// SharedKey calculates the key that is shared between the public and
+// CommonKey calculates the key that is shared between the public and
 // private keys given. Internally, this uses box.Precompute, performing a
 // Diffie-Hellman key exchange.
-func SharedKey(pub, priv *[keySize]byte) *[keySize]byte {
+func CommonKey(pub, priv *[keySize]byte) *[keySize]byte {
 	var key = new([keySize]byte)
 	box.Precompute(key, pub, priv)
 	return key
