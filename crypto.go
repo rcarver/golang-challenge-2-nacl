@@ -31,20 +31,28 @@ func NewKeyPair() *KeyPair {
 // the Reader. A new KeyPair is returned containing the peer's public key and
 // this private key.
 func (kp *KeyPair) Exchange(rw io.ReadWriter) (*KeyPair, error) {
-	newPair := &KeyPair{pub: &[keySize]byte{}, priv: kp.priv}
-
-	// Send public key.
-	debugf("Sending public key %v\n", kp.pub)
-	if _, err := rw.Write(kp.pub[:]); err != nil {
+	if err := kp.send(rw); err != nil {
 		return nil, err
 	}
+	return kp.recv(rw)
+}
 
-	// Receive public key from the client.
-	if _, err := rw.Read(newPair.pub[:]); err != nil {
+func (kp *KeyPair) send(w io.Writer) error {
+	debugf("Sending public key %v\n", kp.pub)
+	if _, err := w.Write(kp.pub[:]); err != nil {
+		return err
+	}
+	debugf("Sent public key %v\n", kp.pub)
+	return nil
+}
+
+func (kp *KeyPair) recv(r io.Reader) (*KeyPair, error) {
+	newPair := &KeyPair{pub: &[keySize]byte{}, priv: kp.priv}
+	debugf("Receiving...\n")
+	if _, err := r.Read(newPair.pub[:]); err != nil {
 		return nil, err
 	}
 	debugf("Received peer's public key: %v\n", newPair.pub)
-
 	return newPair, nil
 }
 

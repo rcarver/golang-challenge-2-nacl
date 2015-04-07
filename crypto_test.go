@@ -71,6 +71,30 @@ func Test_KeyPair_SharedKey(t *testing.T) {
 	}
 }
 
+func Test_KeyPairDiffieHellmanSharedKey(t *testing.T) {
+	kp1 := NewKeyPair()
+	kp2 := NewKeyPair()
+	var shared1 *[32]byte
+	var shared2 *[32]byte
+	r, w := io.Pipe()
+	go func() {
+		x, _ := kp2.recv(r)
+		shared2 = x.SharedKey()
+	}()
+	kp1.send(w)
+	go func() {
+		x, _ := kp1.recv(r)
+		shared1 = x.SharedKey()
+	}()
+	kp2.send(w)
+	if shared1 == nil || shared2 == nil {
+		t.Fatalf("shared must not be nil")
+	}
+	if !bytes.Equal(shared1[:], shared2[:]) {
+		t.Fatalf("want equal shared keys, got\na: %v\nb: %v\n", shared1, shared2)
+	}
+}
+
 func Test_SharedKey(t *testing.T) {
 	aPub, aPriv, _ := box.GenerateKey(rand.Reader)
 	bPub, bPriv, _ := box.GenerateKey(rand.Reader)
