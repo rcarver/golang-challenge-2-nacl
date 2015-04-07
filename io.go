@@ -14,6 +14,10 @@ import (
 // as a single message using SecureReader and SecureWriter.
 const maxMessageSize = uint64(32 * 1024)
 
+// maxWrittenMessageSize is the greatest number of bytes that will be
+// transmitted after encryption.
+const maxWrittenMessageSize = maxMessageSize + box.Overhead + nonceSize
+
 // SecureReader implements io.Reader and uses a key decrypt messages from the
 // underlying Reader. It expects the data to be in the form defined by
 // SecureWriter.
@@ -31,9 +35,8 @@ func (r *SecureReader) Read(out []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	// TODO: this should include encryption overhead yes?
-	if size > maxMessageSize {
-		return 0, fmt.Errorf("message is too long. max: %d, got: %d", maxMessageSize, size)
+	if size > maxWrittenMessageSize {
+		return 0, fmt.Errorf("message is too long. max: %d, got: %d", maxWrittenMessageSize, size)
 	}
 	debugf("Read: %d byte message", size)
 
