@@ -74,12 +74,9 @@ func CommonKey(pub, priv *[keySize]byte) *[keySize]byte {
 
 const nonceSize = 24
 
-// Nonce is the unique input for each new encryption.
-type Nonce [nonceSize]byte
-
 // NewNonce returns a new Nonce initialized with a random value.
-func NewNonce() *Nonce {
-	var nonce Nonce
+func NewNonce() *[nonceSize]byte {
+	var nonce [nonceSize]byte
 	_, err := io.ReadFull(rand.Reader, nonce[:])
 	if err != nil {
 		return nil
@@ -90,8 +87,8 @@ func NewNonce() *Nonce {
 // NonceFrom returns a new Nonce initialized by reading from the buffer.
 // If the buffer is bigger than 24 bytes, only the first 24 bytes are read.
 // An error is returned if fewer than 24 bytes are read.
-func NonceFrom(buf []byte) (*Nonce, error) {
-	var n Nonce
+func NonceFrom(buf []byte) (*[nonceSize]byte, error) {
+	var n [nonceSize]byte
 	c := copy(n[:], buf)
 	if c < nonceSize {
 		return nil, fmt.Errorf("did not write the entire value (wrote %d)", c)

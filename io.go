@@ -60,8 +60,7 @@ func (r *SecureReader) Read(out []byte) (int, error) {
 	debugf("Read: msg\n%s\n", hex.Dump(msg))
 
 	// Decrypt the message.
-	nonceBytes := [24]byte(*nonce)
-	res, ok := box.OpenAfterPrecomputation(nil, msg, &nonceBytes, r.key)
+	res, ok := box.OpenAfterPrecomputation(nil, msg, nonce, r.key)
 	if !ok {
 		return 0, errors.New("decryption failed")
 	}
@@ -95,8 +94,7 @@ func (w *SecureWriter) Write(buf []byte) (int, error) {
 	debugf("Write: nonce\n%s\n", hex.Dump(nonce[:]))
 
 	// Encrypt the message with the nonce prefix.
-	nonceBytes := [24]byte(*nonce)
-	sealed := box.SealAfterPrecomputation(nonceBytes[:], buf, &nonceBytes, w.key)
+	sealed := box.SealAfterPrecomputation(nonce[:], buf, nonce, w.key)
 
 	debugf("Write: sealed %d bytes\n%s\n", len(sealed), hex.Dump(sealed))
 
