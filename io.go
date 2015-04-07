@@ -28,7 +28,7 @@ type SecureReader struct {
 
 // Read implements io.Reader. Expects that data read from the reader has been
 // encrypted.
-func (r *SecureReader) Read(out []byte) (int, error) {
+func (r SecureReader) Read(out []byte) (int, error) {
 	// Read the header to find out how big the message is.
 	var size uint64
 	err := binary.Read(r.r, binary.BigEndian, &size)
@@ -84,7 +84,7 @@ type SecureWriter struct {
 }
 
 // Write implements io.Writer.
-func (w *SecureWriter) Write(buf []byte) (int, error) {
+func (w SecureWriter) Write(buf []byte) (int, error) {
 	if uint64(len(buf)) > maxMessageSize {
 		return 0, fmt.Errorf("input is too long. Got: %d bytes, max: %d", len(buf), maxMessageSize)
 	}
