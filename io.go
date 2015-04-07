@@ -10,13 +10,13 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
-// maxMessageSize is the greatest number of bytes that can be transmitted
-// as a single message using SecureReader and SecureWriter.
+// maxMessageSize is the greatest number of bytes that can be transmitted as a
+// message with SecureWriter.
 const maxMessageSize = uint64(32 * 1024)
 
 // maxWrittenMessageSize is the greatest number of bytes that will be
-// transmitted after encryption.
-const maxWrittenMessageSize = maxMessageSize + box.Overhead + nonceSize
+// transmitted after encryption, incoming to SecureReader.
+const maxWrittenMessageSize = maxMessageSize + box.Overhead + nonceSize + 8 // uint64 header
 
 // SecureReader implements io.Reader and uses a key decrypt messages from the
 // underlying Reader. It expects the data to be in the form defined by

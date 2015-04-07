@@ -31,34 +31,35 @@ func Test_SecureWriter_Read_fails(t *testing.T) {
 }
 
 func Test_SecureWriter_Write(t *testing.T) {
-	key := &[32]byte{}
-	buf := [4]byte{'a', 'b', 'c', 'd'}
-
 	r, w := io.Pipe()
-	sw := SecureWriter{w, key}
+	sw := SecureWriter{w, &[32]byte{}}
 
-	var out = make([]byte, 1024)
-	go io.ReadFull(r, out)
+	var readBytes int
+	var out = make([]byte, maxMessageSize+1024)
+	go func() {
+		readBytes, _ = io.ReadFull(r, out)
+	}()
 
-	c, err := sw.Write(buf[:])
+	buf := make([]byte, maxMessageSize)
+	writtenBytes, err := sw.Write(buf[:])
 	if err != nil {
 		t.Fatalf("Want no error, got %s", err)
 	}
-	if c == 0 {
-		t.Fatalf("Want bytes written, got %d", c)
+	if uint64(writtenBytes) != maxWrittenMessageSize {
+		t.Fatalf("want to write %d, got %d", maxWrittenMessageSize, writtenBytes)
 	}
 
 	headerSize := uint64(8)
 	messageSize := binary.BigEndian.Uint64(out)
 
-	if want := messageSize + headerSize; want != uint64(c) {
-		t.Fatalf("want the right size result, want %d, got %d", want, c)
+	if want := messageSize + headerSize; want != uint64(writtenBytes) {
+		t.Fatalf("want the right size result, want %d, got %d", want, writtenBytes)
 	}
-	if want := out[messageSize+headerSize-1]; want == 0 {
-		t.Fatalf("expect non-zero at the end of the data, got %#v", want)
+	if got := out[messageSize+headerSize-1]; got == 0 {
+		t.Fatalf("expect non-zero at the end of the data, got %#v", got)
 	}
-	if want := out[messageSize+headerSize]; want != 0 {
-		t.Fatalf("expect zero past the data, got %#v", want)
+	if got := out[messageSize+headerSize]; got != 0 {
+		t.Fatalf("expect zero past the data, got %#v", got)
 	}
 }
 
