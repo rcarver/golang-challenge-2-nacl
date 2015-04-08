@@ -30,10 +30,4 @@ func main() {
 
 	fmt.Printf("a share %v\n", aShare)
 	fmt.Printf("b share %v\n", bShare)
-
-	aComm := &[32]byte{}
-	box.Precompute(aComm, aShare, bPriv)
-
-	bComm := &[32]byte{}
-	box.Precompute(bComm, bShare, aPriv)
 }
