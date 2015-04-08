@@ -37,6 +37,10 @@ rcarver:
 rcarver.zip: rcarver
 	zip -r $@ $^
 
-dist: rcarver.zip
+dist: clean_dist rcarver.zip
 
-.PHONY: dist
+clean_dist:
+	rm -rf rcarver
+	rm rcarver.zip
+
+.PHONY: clean_dist dist
