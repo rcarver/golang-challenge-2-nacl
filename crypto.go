@@ -30,7 +30,7 @@ func NewKeyPair() *KeyPair {
 // public key to the Writer, then gets the peer's public key by reading from
 // the Reader. A new KeyPair is returned containing the peer's public key and
 // this private key.
-func (kp *KeyPair) Exchange(rw io.ReadWriter) (*KeyPair, error) {
+func (kp KeyPair) Exchange(rw io.ReadWriter) (*KeyPair, error) {
 	if err := kp.send(rw); err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (kp *KeyPair) send(w io.Writer) error {
 	return nil
 }
 
-func (kp *KeyPair) recv(r io.Reader) (*KeyPair, error) {
+func (kp KeyPair) recv(r io.Reader) (*KeyPair, error) {
 	newPair := &KeyPair{pub: &[keySize]byte{}, priv: kp.priv}
 	debugf("Receiving...\n")
 	if _, err := r.Read(newPair.pub[:]); err != nil {
@@ -59,7 +59,7 @@ func (kp *KeyPair) recv(r io.Reader) (*KeyPair, error) {
 // CommonKey returns the shared key computed with the public key and the
 // private key. By using Exchange, then calling CommonKey on the resulting
 // KeyPair you get a key that can be used to communicate with the other side.
-func (kp *KeyPair) CommonKey() *[keySize]byte {
+func (kp KeyPair) CommonKey() *[keySize]byte {
 	return CommonKey(kp.pub, kp.priv)
 }
 
