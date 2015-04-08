@@ -75,13 +75,13 @@ func CommonKey(pub, priv *[keySize]byte) *[keySize]byte {
 const nonceSize = 24
 
 // NewNonce returns a new Nonce initialized with a random value.
-func NewNonce() *[nonceSize]byte {
+func NewNonce() (*[nonceSize]byte, error) {
 	var nonce [nonceSize]byte
 	_, err := io.ReadFull(rand.Reader, nonce[:])
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return &nonce
+	return &nonce, nil
 }
 
 // NonceFrom returns a new Nonce initialized by reading from the buffer.

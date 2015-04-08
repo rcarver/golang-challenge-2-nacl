@@ -91,9 +91,9 @@ func (w SecureWriter) Write(buf []byte) (int, error) {
 	}
 
 	// Create a nonce.
-	nonce := NewNonce()
-	if nonce == nil {
-		return 0, errors.New("failed to create nonce")
+	nonce, err := NewNonce()
+	if err != nil {
+		return 0, err
 	}
 	debugf("Write: nonce\n%s\n", hex.Dump(nonce[:]))
 

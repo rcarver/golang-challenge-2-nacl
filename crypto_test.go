@@ -108,7 +108,10 @@ func Test_CommonKey(t *testing.T) {
 }
 
 func Test_NewNonce(t *testing.T) {
-	n := NewNonce()
+	n, err := NewNonce()
+	if err != nil {
+		t.Fatalf("NewNonce got error %s", err)
+	}
 
 	if got := len(n); got != 24 {
 		t.Fatalf("Got %d, want 24", got)
