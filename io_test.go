@@ -20,13 +20,13 @@ func Test_SecureWriter_Read_fails(t *testing.T) {
 	c, err := sr.Read(out)
 
 	if c != 0 {
-		t.Fatalf("want 0 bytes")
+		t.Fatalf("Want 0 bytes")
 	}
 	if err == nil {
-		t.Fatalf("want error")
+		t.Fatalf("Want error")
 	}
 	if err.Error() != "decryption failed" {
-		t.Fatalf("want decryption error, got %s", err)
+		t.Fatalf("Got error: %s, want 'decryption failed'", err)
 	}
 }
 
@@ -43,23 +43,23 @@ func Test_SecureWriter_Write(t *testing.T) {
 	buf := make([]byte, maxMessageSize)
 	writtenBytes, err := sw.Write(buf[:])
 	if err != nil {
-		t.Fatalf("Want no error, got %s", err)
+		t.Fatalf("Got error %s, want no error", err)
 	}
 	if uint64(writtenBytes) != maxWrittenMessageSize {
-		t.Fatalf("want to write %d, got %d", maxWrittenMessageSize, writtenBytes)
+		t.Fatalf("Got %d bytes written, want to write %d", writtenBytes, maxWrittenMessageSize)
 	}
 
 	headerSize := uint64(8)
 	messageSize := binary.BigEndian.Uint64(out)
 
 	if want := messageSize + headerSize; want != uint64(writtenBytes) {
-		t.Fatalf("want the right size result, want %d, got %d", want, writtenBytes)
+		t.Fatalf("Want the right size result, got %d, want %d", writtenBytes, want)
 	}
 	if got := out[messageSize+headerSize-1]; got == 0 {
-		t.Fatalf("expect non-zero at the end of the data, got %#v", got)
+		t.Fatalf("Got %#v, want non-zero at the end of the data", got)
 	}
 	if got := out[messageSize+headerSize]; got != 0 {
-		t.Fatalf("expect zero past the data, got %#v", got)
+		t.Fatalf("Got %#v, want zero past the data", got)
 	}
 }
 
@@ -75,7 +75,7 @@ func Test_SecureWriter_Write_TooLong(t *testing.T) {
 		t.Fatalf("Want an error")
 	}
 	if c != 0 {
-		t.Fatalf("Want 0 bytes written, got %d", c)
+		t.Fatalf("Got %d bytes written, want 0 bytes written", c)
 	}
 
 }
@@ -94,19 +94,19 @@ func Test_Secure_ReadWrite(t *testing.T) {
 		var err error
 		readBytes, err = sr.Read(out)
 		if err != nil {
-			t.Fatalf("Want no error, got %s", err)
+			t.Fatalf("Got error %s, want no error", err)
 		}
 	}()
 
 	_, err := sw.Write(buf[:])
 	if err != nil {
-		t.Fatalf("Want no error, got %s", err)
+		t.Fatalf("Got error %s, want no error", err)
 	}
 
 	if readBytes != 4 {
-		t.Fatalf("want 4 bytes, got %d", readBytes)
+		t.Fatalf("Got %d bytes read, want 4 bytes", readBytes)
 	}
 	if string(out[:4]) != "abcd" {
-		t.Fatalf("want abcd, got %s", out)
+		t.Fatalf("Got %s, want abcd", out)
 	}
 }

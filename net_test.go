@@ -32,16 +32,16 @@ func Test_Server_handshake(t *testing.T) {
 
 	commonKey, err := s.handshake(rw)
 	if err != nil {
-		t.Fatalf("want no error in handshake")
+		t.Fatalf("Want no error in handshake")
 	}
 
 	// Server sent its public key to client.
 	if !bytes.Equal(kp.pub[:], w.Bytes()) {
-		t.Fatalf("send key: want %#v, got %#v", kp.pub, w.Bytes())
+		t.Fatalf("Send key: got %#v, want %#v", w.Bytes(), kp.pub)
 	}
 	// Server received commonKey
 	if commonKey == nil {
-		t.Fatalf("want shared key, got nil")
+		t.Fatalf("Want shared key, got nil")
 	}
 }
 
@@ -59,10 +59,10 @@ func Test_Server_handle(t *testing.T) {
 		sr := NewSecureReader(r, kp.priv, kp.pub)
 		sw := NewSecureWriter(w, kp.priv, kp.pub)
 		if _, err := sw.Write([]byte("hello")); err != nil {
-			t.Fatalf("want no error writing message")
+			t.Fatalf("Want no error writing message")
 		}
 		if outSize, err = sr.Read(out); err != nil {
-			t.Fatalf("want no error reading message")
+			t.Fatalf("Want no error reading message")
 		}
 	}()
 
@@ -74,12 +74,12 @@ func Test_Server_handle(t *testing.T) {
 
 	commonKey := kp.CommonKey()
 	if err := s.handle(rw, commonKey); err != nil {
-		t.Fatalf("want no error in handle")
+		t.Fatalf("Want no error in handle")
 	}
 
 	expectedOut := []byte("hello")
 	if !bytes.Equal(out[:outSize], expectedOut) {
-		t.Fatalf("want %s, got %s", expectedOut, out[:5])
+		t.Fatalf("Got %s, want %s", out[:5], expectedOut)
 	}
 }
 
@@ -100,16 +100,16 @@ func Test_Client_Handshake(t *testing.T) {
 	}{r, w}
 
 	if err := c.Handshake(rw); err != nil {
-		t.Fatalf("want no error, got %s", err)
+		t.Fatalf("Got %s, want no error", err)
 	}
 
 	// Client sent its public key to server.
 	if !bytes.Equal(kp.pub[:], w.Bytes()) {
-		t.Fatalf("send key: want %#v, got %#v", kp.pub, w.Bytes())
+		t.Fatalf("Send key: got %#v, want %#v", w.Bytes(), kp.pub)
 	}
 	// Client received server's shared key.
 	if c.commonKey == nil {
-		t.Fatalf("want shared key, got nil")
+		t.Fatalf("Got nil, want shared key")
 	}
 }
 
@@ -134,6 +134,6 @@ func Test_Client_SecureConn(t *testing.T) {
 	sc.Write([]byte{'x'})
 
 	if string(out) != "x" {
-		t.Fatalf("want x, got %s", out)
+		t.Fatalf("Got %s, want x", out)
 	}
 }

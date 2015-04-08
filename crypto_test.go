@@ -12,14 +12,14 @@ import (
 func Test_NewKeyPair(t *testing.T) {
 	k := NewKeyPair()
 	if k == nil {
-		t.Fatalf("want a key, got nil")
+		t.Fatalf("Got nil, want a key")
 	}
 	var check = func(k *[32]byte) {
 		var a = make([]byte, len(k))
 		var b = make([]byte, len(k))
 		copy(a, k[:])
 		if bytes.Equal(a, b) {
-			t.Fatalf("want non-zero value")
+			t.Fatalf("Want non-zero value")
 		}
 	}
 	check(k.priv)
@@ -46,16 +46,18 @@ func Test_KeyPair_Exchange(t *testing.T) {
 
 	kp2, err := kp.Exchange(rw)
 	if err != nil {
-		t.Fatalf("want no error in Exchange")
+		t.Fatalf("Want no error in Exchange")
 	}
 	if !bytes.Equal(kp.pub[:], w.Bytes()) {
-		t.Fatalf("send pub key: want %#v, got %#v", kp.pub, w.Bytes())
+		t.Fatalf("Send pub key: got %#v, want %#v", w.Bytes(), kp.pub)
 	}
+	// WRONG
 	if !bytes.Equal(kp2.pub[:], kp2.pub[:]) {
-		t.Fatalf("recv pub key: want %#v, got %#v", kp2.pub, kp2.pub)
+		t.Fatalf("Recv pub key: got %#v, want %#v", kp2.pub, kp2.pub)
 	}
+	// WRONG
 	if !bytes.Equal(kp2.priv[:], kp2.priv[:]) {
-		t.Fatalf("recv priv key: want %#v, got %#v", kp2.priv, kp2.priv)
+		t.Fatalf("Recv priv key: got %#v, want %#v", kp2.priv, kp2.priv)
 	}
 }
 
@@ -67,7 +69,7 @@ func Test_KeyPair_CommonKey(t *testing.T) {
 	want := CommonKey(kp.pub, kp.priv)
 	got := kp.CommonKey()
 	if !bytes.Equal(want[:], got[:]) {
-		t.Fatalf("shared want %v, got %v", want, got)
+		t.Fatalf("Common key got %v, want %v", got, want)
 	}
 }
 
@@ -91,7 +93,7 @@ func Test_KeyPairDiffieHellmanCommonKey(t *testing.T) {
 		t.Fatalf("shared must not be nil")
 	}
 	if !bytes.Equal(shared1[:], shared2[:]) {
-		t.Fatalf("want equal shared keys, got\na: %v\nb: %v\n", shared1, shared2)
+		t.Fatalf("Want equal shared keys\na: %v\nb: %v\n", shared1, shared2)
 	}
 }
 
@@ -101,7 +103,7 @@ func Test_CommonKey(t *testing.T) {
 	aShare := CommonKey(bPub, aPriv)
 	bShare := CommonKey(aPub, bPriv)
 	if !bytes.Equal(aShare[:], bShare[:]) {
-		t.Fatalf("want equal shared keys\na: %v\nb: %v", aShare, bShare)
+		t.Fatalf("Want equal shared keys\na: %v\nb: %v", aShare, bShare)
 	}
 }
 
@@ -109,14 +111,14 @@ func Test_NewNonce(t *testing.T) {
 	n := NewNonce()
 
 	if got := len(n); got != 24 {
-		t.Fatalf("want 24, got %d", got)
+		t.Fatalf("Got %d, want 24", got)
 	}
 
 	var a = make([]byte, len(n))
 	var b = make([]byte, len(n))
 	copy(a, n[:])
 	if bytes.Equal(a, b) {
-		t.Fatalf("want non-zero value")
+		t.Fatalf("Want non-zero value")
 	}
 }
 
@@ -127,13 +129,13 @@ func Test_NonceFrom(t *testing.T) {
 	n, err := NonceFrom(buf)
 
 	if err != nil {
-		t.Fatalf("want no error, got %s", err)
+		t.Fatalf("Got error %s, want no error", err)
 	}
 
 	a := make([]byte, len(n))
 	copy(a, "hello")
 	if !bytes.Equal(a, n[:]) {
-		t.Fatalf("want nonce to have value of buffer, got %v", n)
+		t.Fatalf("Got %v, want nonce to have value of buffer", n)
 	}
 }
 
@@ -143,9 +145,9 @@ func Test_Nonce_NonceFrom_fail(t *testing.T) {
 	n, err := NonceFrom(buf)
 
 	if n != nil {
-		t.Fatalf("want no nonce")
+		t.Fatalf("Want no nonce")
 	}
 	if err == nil {
-		t.Fatalf("want error")
+		t.Fatalf("Want error")
 	}
 }
