@@ -46,18 +46,18 @@ func Test_KeyPair_Exchange(t *testing.T) {
 
 	kp2, err := kp.Exchange(rw)
 	if err != nil {
-		t.Fatalf("Want no error in Exchange")
+		t.Fatalf("Exchange got error %s", err)
 	}
-	if !bytes.Equal(kp.pub[:], w.Bytes()) {
-		t.Fatalf("Send pub key: got %#v, want %#v", w.Bytes(), kp.pub)
+	if !bytes.Equal(w.Bytes(), kp.pub[:]) {
+		t.Errorf("Send pub key: got %#v, want %#v", w.Bytes(), kp.pub)
 	}
 	// WRONG
 	if !bytes.Equal(kp2.pub[:], kp2.pub[:]) {
-		t.Fatalf("Recv pub key: got %#v, want %#v", kp2.pub, kp2.pub)
+		t.Errorf("Recv pub key: got %#v, want %#v", kp2.pub, kp2.pub)
 	}
 	// WRONG
 	if !bytes.Equal(kp2.priv[:], kp2.priv[:]) {
-		t.Fatalf("Recv priv key: got %#v, want %#v", kp2.priv, kp2.priv)
+		t.Errorf("Recv priv key: got %#v, want %#v", kp2.priv, kp2.priv)
 	}
 }
 
@@ -68,42 +68,42 @@ func Test_KeyPair_CommonKey(t *testing.T) {
 	}
 	want := CommonKey(kp.pub, kp.priv)
 	got := kp.CommonKey()
-	if !bytes.Equal(want[:], got[:]) {
-		t.Fatalf("Common key got %v, want %v", got, want)
+	if !bytes.Equal(got[:], want[:]) {
+		t.Errorf("Common key got %v, want %v", got, want)
 	}
 }
 
 func Test_KeyPairDiffieHellmanCommonKey(t *testing.T) {
 	kp1 := NewKeyPair()
 	kp2 := NewKeyPair()
-	var shared1 *[32]byte
-	var shared2 *[32]byte
+	var common1 *[32]byte
+	var common2 *[32]byte
 	r, w := io.Pipe()
 	go func() {
 		x, _ := kp2.recv(r)
-		shared2 = x.CommonKey()
+		common2 = x.CommonKey()
 	}()
 	kp1.send(w)
 	go func() {
 		x, _ := kp1.recv(r)
-		shared1 = x.CommonKey()
+		common1 = x.CommonKey()
 	}()
 	kp2.send(w)
-	if shared1 == nil || shared2 == nil {
-		t.Fatalf("shared must not be nil")
+	if common1 == nil || common2 == nil {
+		t.Fatalf("Common keys must not be nil")
 	}
-	if !bytes.Equal(shared1[:], shared2[:]) {
-		t.Fatalf("Want equal shared keys\na: %v\nb: %v\n", shared1, shared2)
+	if !bytes.Equal(common1[:], common2[:]) {
+		t.Errorf("Want equal common keys\na: %v\nb: %v\n", common1, common2)
 	}
 }
 
 func Test_CommonKey(t *testing.T) {
 	aPub, aPriv, _ := box.GenerateKey(rand.Reader)
 	bPub, bPriv, _ := box.GenerateKey(rand.Reader)
-	aShare := CommonKey(bPub, aPriv)
-	bShare := CommonKey(aPub, bPriv)
-	if !bytes.Equal(aShare[:], bShare[:]) {
-		t.Fatalf("Want equal shared keys\na: %v\nb: %v", aShare, bShare)
+	aCommon := CommonKey(bPub, aPriv)
+	bCommon := CommonKey(aPub, bPriv)
+	if !bytes.Equal(aCommon[:], bCommon[:]) {
+		t.Errorf("Want equal common keys\na: %v\nb: %v", aCommon, bCommon)
 	}
 }
 
@@ -118,7 +118,7 @@ func Test_NewNonce(t *testing.T) {
 	var b = make([]byte, len(n))
 	copy(a, n[:])
 	if bytes.Equal(a, b) {
-		t.Fatalf("Want non-zero value")
+		t.Errorf("Want non-zero value")
 	}
 }
 
@@ -135,7 +135,7 @@ func Test_NonceFrom(t *testing.T) {
 	a := make([]byte, len(n))
 	copy(a, "hello")
 	if !bytes.Equal(a, n[:]) {
-		t.Fatalf("Got %v, want nonce to have value of buffer", n)
+		t.Errorf("Got %v, want nonce to have value of buffer", n)
 	}
 }
 
@@ -145,9 +145,9 @@ func Test_Nonce_NonceFrom_fail(t *testing.T) {
 	n, err := NonceFrom(buf)
 
 	if n != nil {
-		t.Fatalf("Want no nonce")
+		t.Errorf("Want no nonce")
 	}
 	if err == nil {
-		t.Fatalf("Want error")
+		t.Errorf("Want error")
 	}
 }

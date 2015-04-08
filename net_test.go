@@ -36,12 +36,12 @@ func Test_Server_handshake(t *testing.T) {
 	}
 
 	// Server sent its public key to client.
-	if !bytes.Equal(kp.pub[:], w.Bytes()) {
-		t.Fatalf("Send key: got %#v, want %#v", w.Bytes(), kp.pub)
+	if !bytes.Equal(w.Bytes(), kp.pub[:]) {
+		t.Errorf("Send key: got %#v, want %#v", w.Bytes(), kp.pub)
 	}
 	// Server received commonKey
-	if commonKey == nil {
-		t.Fatalf("Want shared key, got nil")
+	if nil == commonKey {
+		t.Errorf("Got nil, want common key")
 	}
 }
 
@@ -77,9 +77,9 @@ func Test_Server_handle(t *testing.T) {
 		t.Fatalf("Want no error in handle")
 	}
 
-	expectedOut := []byte("hello")
-	if !bytes.Equal(out[:outSize], expectedOut) {
-		t.Fatalf("Got %s, want %s", out[:5], expectedOut)
+	wantOut := []byte("hello")
+	if !bytes.Equal(out[:outSize], wantOut) {
+		t.Fatalf("Got %s, want %s", out[:5], wantOut)
 	}
 }
 
@@ -100,16 +100,16 @@ func Test_Client_Handshake(t *testing.T) {
 	}{r, w}
 
 	if err := c.Handshake(rw); err != nil {
-		t.Fatalf("Got %s, want no error", err)
+		t.Fatalf("Handshake got error: %s", err)
 	}
 
 	// Client sent its public key to server.
 	if !bytes.Equal(kp.pub[:], w.Bytes()) {
-		t.Fatalf("Send key: got %#v, want %#v", w.Bytes(), kp.pub)
+		t.Errorf("Send key: got %#v, want %#v", w.Bytes(), kp.pub)
 	}
-	// Client received server's shared key.
-	if c.commonKey == nil {
-		t.Fatalf("Got nil, want shared key")
+	// Client received server's common key.
+	if nil == c.commonKey {
+		t.Errorf("Got nil, want common key")
 	}
 }
 
@@ -133,7 +133,7 @@ func Test_Client_SecureConn(t *testing.T) {
 
 	sc.Write([]byte{'x'})
 
-	if string(out) != "x" {
-		t.Fatalf("Got %s, want x", out)
+	if want := "x"; string(out) != want {
+		t.Fatalf("Got %s, want %s", out, want)
 	}
 }
