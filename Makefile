@@ -28,3 +28,15 @@ vet:
 	$$GOPATH/bin/golint .
 
 .PHONY: build server client test_echo vet verify
+
+rcarver:
+	rm -rf $@
+	mkdir -p $@
+	cp *.go $@
+
+rcarver.zip: rcarver
+	zip -r $@ $^
+
+dist: rcarver.zip
+
+.PHONY: dist
