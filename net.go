@@ -39,7 +39,7 @@ func (s *Server) Serve(l net.Listener) error {
 }
 
 // handshake performs the key exchange with the client, returning the shared
-// key that can be used to communicate with the client.
+// key that can be used to communicate with that client only.
 func (s *Server) handshake(conn io.ReadWriter) (*[keySize]byte, error) {
 	s.debug("Performing key exchange...\n")
 	kp, err := s.keyPair.Exchange(conn)

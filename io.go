@@ -18,8 +18,8 @@ const maxMessageSize = uint64(32 * 1024)
 // transmitted after encryption, incoming to SecureReader.
 const maxWrittenMessageSize = maxMessageSize + box.Overhead + nonceSize + 8 // uint64 header
 
-// SecureReader implements io.Reader and uses a key decrypt messages from the
-// underlying Reader. It expects the data to be in the form defined by
+// SecureReader implements io.Reader and uses a key to decrypt messages from
+// the underlying Reader. It expects the data to be in the form defined by
 // SecureWriter.
 type SecureReader struct {
 	r   io.Reader
@@ -35,10 +35,11 @@ func (r SecureReader) Read(out []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	debugf("Read: %d byte message", size)
+
 	if size > maxWrittenMessageSize {
 		return 0, fmt.Errorf("message is too long. max: %d, got: %d", maxWrittenMessageSize, size)
 	}
-	debugf("Read: %d byte message", size)
 
 	// This buffer holds the encrypted message.
 	buf := make([]byte, size)
