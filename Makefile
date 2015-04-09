@@ -29,18 +29,18 @@ vet:
 
 .PHONY: build server client test_echo vet verify
 
-rcarver:
+gc2:
 	rm -rf $@
 	mkdir -p $@
 	cp *.go $@
 
-rcarver.zip: rcarver
+gc2.zip: gc2
 	zip -r $@ $^
 
-dist: clean_dist rcarver.zip
+dist: clean_dist gc2.zip
 
 clean_dist:
-	rm -rf rcarver
-	rm rcarver.zip
+	rm -rf gc2
+	rm -f gc2.zip
 
 .PHONY: clean_dist dist
