@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-// debugging turns on extra logging.
+// debugging enables debug message to STDOUT.
 var debugging = false
 
 // debugf is a Printf wrapper used to output helpful debugging output. It may
