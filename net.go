@@ -58,7 +58,7 @@ func (s *Server) handle(conn io.ReadWriter, commonKey *[keySize]byte) error {
 
 	// Read decrypted data from the client.
 	s.debug("Reading...\n")
-	buf := make([]byte, 2048)
+	buf := make([]byte, maxMessageSize)
 	c, err := sr.Read(buf)
 	if err != nil {
 		return err
