@@ -27,7 +27,8 @@ type SecureReader struct {
 }
 
 // Read implements io.Reader. Expects that data read from the reader has been
-// encrypted.
+// encrypted. If out is not big enough to hold the decrypted message, a partial
+// message is written and an error is returned.
 func (r SecureReader) Read(out []byte) (int, error) {
 	// Read the header to find out how big the message is.
 	var size uint64
@@ -71,11 +72,11 @@ func (r SecureReader) Read(out []byte) (int, error) {
 	debugf("Read: result\n%s\n", hex.Dump(res))
 
 	// Copy the result for output.
-	c = copy(out, res)
-	if c < len(res) {
-		return c, fmt.Errorf("failed to write into the output buffer. Wrote %d, needed %d", c, len(res))
+	co := copy(out, res)
+	if co < len(res) {
+		return co, fmt.Errorf("failed to write into the output buffer. Wrote %d, needed %d", co, len(res))
 	}
-	return c, nil
+	return co, nil
 }
 
 // SecureWriter implements io.Writer and encrypts data with a key before
