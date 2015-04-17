@@ -77,7 +77,7 @@ func (s *Server) handle(conn io.ReadWriter, commonKey *[keySize]byte) error {
 }
 
 func (s *Server) debug(str string, v ...interface{}) {
-	debugf("server: %s", fmt.Sprintf(str, v))
+	debugf("server: %s", fmt.Sprintf(str, v...))
 }
 
 // Client is the secure echo client.
@@ -117,5 +117,5 @@ func (c *Client) SecureConn(conn io.ReadWriteCloser) io.ReadWriteCloser {
 }
 
 func (c *Client) debug(str string, v ...interface{}) {
-	debugf("client: %s", fmt.Sprintf(str, v))
+	debugf("client: %s", fmt.Sprintf(str, v...))
 }
