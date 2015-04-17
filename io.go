@@ -38,7 +38,7 @@ func (r SecureReader) Read(out []byte) (int, error) {
 	debugf("Read: %d byte message", size)
 
 	if size > maxWrittenMessageSize {
-		return 0, fmt.Errorf("message is too long. max: %d, got: %d", maxWrittenMessageSize, size)
+		return 0, fmt.Errorf("message is too large. Got %d bytes, max: %d", size, maxWrittenMessageSize)
 	}
 
 	// This buffer holds the encrypted message.
@@ -87,7 +87,7 @@ type SecureWriter struct {
 // Write implements io.Writer.
 func (w SecureWriter) Write(buf []byte) (int, error) {
 	if uint64(len(buf)) > maxMessageSize {
-		return 0, fmt.Errorf("input is too long. Got: %d bytes, max: %d", len(buf), maxMessageSize)
+		return 0, fmt.Errorf("input is too large. Got %d bytes, max: %d", len(buf), maxMessageSize)
 	}
 
 	// Create a nonce.
