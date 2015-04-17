@@ -29,7 +29,7 @@ vet:
 
 .PHONY: build server client test_echo vet verify
 
-gc2:
+gc2: 
 	rm -rf $@
 	mkdir -p $@
 	cp *.go $@
@@ -37,7 +37,7 @@ gc2:
 gc2.zip: gc2
 	zip -r $@ $^
 
-dist: clean_dist gc2.zip
+dist: verify clean_dist gc2.zip
 
 clean_dist:
 	rm -rf gc2
