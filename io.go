@@ -71,8 +71,11 @@ func (r SecureReader) Read(out []byte) (int, error) {
 	debugf("Read: result\n%s\n", hex.Dump(res))
 
 	// Copy the result for output.
-	copy(out, res)
-	return len(res), nil
+	c = copy(out, res)
+	if c < len(res) {
+		return c, fmt.Errorf("failed to write into the output buffer. Wrote %d, needed %d", c, len(res))
+	}
+	return c, nil
 }
 
 // SecureWriter implements io.Writer and encrypts data with a key before
