@@ -35,7 +35,7 @@ func (r SecureReader) Read(out []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	debugf("Read: %d byte message", size)
+	debugf("Read: %d byte message\n", size)
 
 	if size > maxWrittenMessageSize {
 		return 0, fmt.Errorf("message is too large. Got %d bytes, max: %d", size, maxWrittenMessageSize)

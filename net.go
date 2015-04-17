@@ -22,17 +22,17 @@ func (s *Server) Serve(l net.Listener) error {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			s.debug("Failed to accept client: %s", err)
+			s.debug("Failed to accept client: %s\n", err)
 			return err
 		}
 		go func(conn net.Conn) {
 			defer conn.Close()
 			commonKey, err := s.handshake(conn)
 			if err != nil {
-				s.debug("Error performing handshake: %s", err)
+				s.debug("Error performing handshake: %s\n", err)
 			}
 			if err := s.handle(conn, commonKey); err != nil {
-				s.debug("Error handling client: %s", err)
+				s.debug("Error handling client: %s\n", err)
 			}
 		}(conn)
 	}
